@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
+
 import Home from './components/HomePage';
 import NavBar from './components/NavBar';
 import ProductList from './components/ProductList';
@@ -9,6 +10,17 @@ import Cart from './components/Cart';
 import ProductDetails from './components/ProductDetails';
 import Checkout from './components/Checkout';
 import User from './components/User';
+
+// NEW imports for admin/login
+import LoginPage from './pages/LoginPage';
+import AdminLayout from './pages/admin/AdminLayout';
+import AdminDashboard from './pages/admin/AdminDashboard';
+
+// Simple guard for admin-only routes
+function RequireAdmin({ children }) {
+  const isAdmin = localStorage.getItem('isAdmin') === 'true';
+  return isAdmin ? children : <Navigate to="/" replace />;
+}
 
 function App() {
   const [cart, setCart] = useState([]);
@@ -44,14 +56,22 @@ function App() {
     }
   };
 
-  const handleTransaction = (orderItems, discount = 0, couponCode = '---', contactInfo = null, paymentMethod = defaultPaymentMethod) => {
+  const handleTransaction = (
+    orderItems,
+    discount = 0,
+    couponCode = '---',
+    contactInfo = null,
+    paymentMethod = defaultPaymentMethod
+  ) => {
     const orderNumber = transactions.length + 1;
     const price = orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const totalPrice = price - discount + shippingFee;
     const dateTime = new Date().toLocaleString();
+
     const deliveryAddress = contactInfo
       ? `${contactInfo.houseStreet}, ${contactInfo.barangay}, ${contactInfo.city}, ${contactInfo.postalCode}`
       : `${houseStreet}, ${barangay}, ${city}, ${postalCode}`;
+
     setTransactions([
       ...transactions,
       {
@@ -78,43 +98,66 @@ function App() {
         <NavBar />
         <main className="main-content">
           <Routes>
-            <Route path="/" element={<Home userName={firstName} />} />
+            {/* LOGIN is now the default route */}
+            <Route path="/" element={<LoginPage />} />
+
+            {/* User / shop routes (moved Home to /shop) */}
+            <Route path="/shop" element={<Home userName={firstName} />} />
             <Route path="/products" element={<ProductList addToCart={addToCart} />} />
             <Route path="/cart" element={<Cart cart={cart} setCart={setCart} />} />
             <Route path="/details/:id" element={<ProductDetails cart={cart} setCart={setCart} />} />
-            <Route path="/checkout" element={
-              <Checkout
-                cart={cart}
-                setCart={setCart}
-                onTransaction={handleTransaction}
-                usedCoupons={usedCoupons}
-                defaultContactInfo={{
-                  firstName,
-                  lastName,
-                  houseStreet,
-                  barangay,
-                  city,
-                  postalCode,
-                }}
-              />
-            } />
-            <Route path="/user" element={
-              <User
-                firstName={firstName}
-                setFirstName={setFirstName}
-                lastName={lastName}
-                setLastName={setLastName}
-                houseStreet={houseStreet}
-                setHouseStreet={setHouseStreet}
-                barangay={barangay}
-                setBarangay={setBarangay}
-                city={city}
-                setCity={setCity}
-                postalCode={postalCode}
-                setPostalCode={setPostalCode}
-                transactions={transactions}
-              />
-            } />
+            <Route
+              path="/checkout"
+              element={
+                <Checkout
+                  cart={cart}
+                  setCart={setCart}
+                  onTransaction={handleTransaction}
+                  usedCoupons={usedCoupons}
+                  defaultContactInfo={{
+                    firstName,
+                    lastName,
+                    houseStreet,
+                    barangay,
+                    city,
+                    postalCode,
+                  }}
+                />
+              }
+            />
+            <Route
+              path="/user"
+              element={
+                <User
+                  firstName={firstName}
+                  setFirstName={setFirstName}
+                  lastName={lastName}
+                  setLastName={setLastName}
+                  houseStreet={houseStreet}
+                  setHouseStreet={setHouseStreet}
+                  barangay={barangay}
+                  setBarangay={setBarangay}
+                  city={city}
+                  setCity={setCity}
+                  postalCode={postalCode}
+                  setPostalCode={setPostalCode}
+                  transactions={transactions}
+                />
+              }
+            />
+
+            {/* Admin routes (protected) */}
+            <Route
+              path="/admin"
+              element={
+                <RequireAdmin>
+                  <AdminLayout />
+                </RequireAdmin>
+              }
+            >
+              <Route index element={<AdminDashboard />} />
+              {/* later: <Route path="products" element={<AdminProductsPage />} /> */}
+            </Route>
           </Routes>
         </main>
       </div>
