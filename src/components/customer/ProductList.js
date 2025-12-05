@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import products from '../data/products.json';
+import products from '../../data/products.json';
 
 function ProductList({ addToCart }) {
   const [quantities, setQuantities] = useState(() => {

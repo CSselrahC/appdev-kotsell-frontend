@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import coupons from '../data/coupons.json';
-import products from '../data/products.json';
+import coupons from '../../data/coupons.json';
+import products from '../../data/products.json';
 
 function HomePage({ userName }) {
   const [currentPromoIndex, setCurrentPromoIndex] = useState(0);
