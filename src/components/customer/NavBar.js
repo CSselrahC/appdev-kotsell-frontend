@@ -11,7 +11,7 @@ function NavBar() {
   return (
     <Navbar bg="dark" variant="dark" expand="md" fixed="top" className="topbar">
       <Container>
-        <Navbar.Brand as={Link} to="/" className="text-info fw-bold">
+        <Navbar.Brand as={Link} to="/homepage" className="text-info fw-bold">
           KOTSELL
         </Navbar.Brand>
         <Navbar.Toggle aria-controls="main-navbar" />
@@ -19,8 +19,8 @@ function NavBar() {
           <Nav className="ms-auto">
             <Nav.Link
               as={Link}
-              to="/"
-              className={`nav-link-custom me-2 ${isActive('/') ? 'active' : ''}`}
+              to="/homepage"
+              className={`nav-link-custom me-2 ${isActive('/homepage') ? 'active' : ''}`}
             >
               <i className="ri-home-line me-2"></i>
               Home

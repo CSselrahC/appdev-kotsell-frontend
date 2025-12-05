@@ -3,7 +3,11 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 
-import Home from './components/customer/HomePage';
+// Landing page
+import LandingPage from './components/LandingPage';
+
+// Customer components
+import HomePage from './components/customer/HomePage';  // Renamed for clarity
 import NavBar from './components/customer/NavBar';
 import ProductList from './components/customer/ProductList';
 import Cart from './components/customer/Cart';
@@ -11,8 +15,8 @@ import ProductDetails from './components/customer/ProductDetails';
 import Checkout from './components/customer/Checkout';
 import User from './components/customer/User';
 
-// NEW imports for admin/login
-import LoginPage from './components/LoginPage';
+// Admin/Login components
+import LoginPage from './components/admin/LoginPage'; // Admin login
 import AdminLayout from './components/admin/AdminLayout';
 import AdminDashboard from './components/admin/AdminDashboard';
 
@@ -95,20 +99,64 @@ function App() {
   return (
     <Router>
       <div className="app-container">
-        <NavBar />
-        <main className="main-content">
-          <Routes>
-            {/* LOGIN is now the default route */}
-            <Route path="/" element={<LoginPage />} />
+        <Routes>
+          {/* Landing page as root */}
+          <Route path="/" element={<LandingPage />} />
 
-            {/* User / shop routes (moved Home to /shop) */}
-            <Route path="/shop" element={<Home userName={firstName} />} />
-            <Route path="/products" element={<ProductList addToCart={addToCart} />} />
-            <Route path="/cart" element={<Cart cart={cart} setCart={setCart} />} />
-            <Route path="/details/:id" element={<ProductDetails cart={cart} setCart={setCart} />} />
-            <Route
-              path="/checkout"
-              element={
+          {/* Homepage route */}
+          <Route path="/homepage" element={
+            <>
+              <NavBar cart={cart} />
+              <main className="main-content">
+                <HomePage userName={firstName} />
+              </main>
+            </>
+          } />
+
+          {/* Admin login */}
+          <Route path="/admin-login" element={<LoginPage />} />
+
+          {/* Customer shop routes */}
+          <Route path="/shop" element={
+            <>
+              <NavBar cart={cart} />
+              <main className="main-content">
+                <HomePage userName={firstName} />
+              </main>
+            </>
+          } />
+          
+          <Route path="/products" element={
+            <>
+              <NavBar cart={cart} />
+              <main className="main-content">
+                <ProductList addToCart={addToCart} />
+              </main>
+            </>
+          } />
+          
+          <Route path="/cart" element={
+            <>
+              <NavBar cart={cart} />
+              <main className="main-content">
+                <Cart cart={cart} setCart={setCart} />
+              </main>
+            </>
+          } />
+          
+          <Route path="/details/:id" element={
+            <>
+              <NavBar cart={cart} />
+              <main className="main-content">
+                <ProductDetails cart={cart} setCart={setCart} />
+              </main>
+            </>
+          } />
+          
+          <Route path="/checkout" element={
+            <>
+              <NavBar cart={cart} />
+              <main className="main-content">
                 <Checkout
                   cart={cart}
                   setCart={setCart}
@@ -123,11 +171,14 @@ function App() {
                     postalCode,
                   }}
                 />
-              }
-            />
-            <Route
-              path="/user"
-              element={
+              </main>
+            </>
+          } />
+          
+          <Route path="/user" element={
+            <>
+              <NavBar cart={cart} />
+              <main className="main-content">
                 <User
                   firstName={firstName}
                   setFirstName={setFirstName}
@@ -143,23 +194,25 @@ function App() {
                   setPostalCode={setPostalCode}
                   transactions={transactions}
                 />
-              }
-            />
+              </main>
+            </>
+          } />
 
-            {/* Admin routes (protected) */}
-            <Route
-              path="/admin"
-              element={
-                <RequireAdmin>
-                  <AdminLayout />
-                </RequireAdmin>
-              }
-            >
-              <Route index element={<AdminDashboard />} />
-              {/* later: <Route path="products" element={<AdminProductsPage />} /> */}
-            </Route>
-          </Routes>
-        </main>
+          {/* Admin routes (protected) */}
+          <Route
+            path="/admin"
+            element={
+              <RequireAdmin>
+                <AdminLayout />
+              </RequireAdmin>
+            }
+          >
+            <Route index element={<AdminDashboard transactions={transactions} usedCoupons={usedCoupons} />} />
+          </Route>
+
+          {/* Fallback to landing */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </div>
     </Router>
   );
