@@ -8,7 +8,7 @@ function LandingPage() {
 
   const handleCustomerClick = () => {
     // Temporarily goes to shop (no customer login yet)
-    navigate('/shop');
+    navigate('/homepage');
   };
 
   const handleAdminClick = () => {

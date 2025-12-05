@@ -16,7 +16,7 @@ import Checkout from './components/customer/Checkout';
 import User from './components/customer/User';
 
 // Admin/Login components
-import LoginPage from './components/admin/LoginPage'; // Admin login
+import AdminLoginPage from './components/admin/AdminLoginPage'; // Admin login
 import AdminLayout from './components/admin/AdminLayout';
 import AdminDashboard from './components/admin/AdminDashboard';
 
@@ -114,17 +114,7 @@ function App() {
           } />
 
           {/* Admin login */}
-          <Route path="/admin-login" element={<LoginPage />} />
-
-          {/* Customer shop routes */}
-          <Route path="/shop" element={
-            <>
-              <NavBar cart={cart} />
-              <main className="main-content">
-                <HomePage userName={firstName} />
-              </main>
-            </>
-          } />
+          <Route path="/admin-login" element={<AdminLoginPage />} />
           
           <Route path="/products" element={
             <>
@@ -198,7 +188,7 @@ function App() {
             </>
           } />
 
-          {/* Admin routes (protected) */}
+          {/* Admin routes (protected) - FIXED NESTED ROUTING */}
           <Route
             path="/admin"
             element={
@@ -208,6 +198,24 @@ function App() {
             }
           >
             <Route index element={<AdminDashboard transactions={transactions} usedCoupons={usedCoupons} />} />
+            <Route path="products" element={
+              <div className="p-4">
+                <h2>Products Management</h2>
+                <p>Products page coming soon...</p>
+              </div>
+            } />
+            <Route path="orders" element={
+              <div className="p-4">
+                <h2>Orders Management</h2>
+                <p>Orders page coming soon...</p>
+              </div>
+            } />
+            <Route path="users" element={
+              <div className="p-4">
+                <h2>Users Management</h2>
+                <p>Users page coming soon...</p>
+              </div>
+            } />
           </Route>
 
           {/* Fallback to landing */}
