@@ -8,7 +8,7 @@ function CheckoutContact({
   onPaymentMethodChange
 }) {
   return (
-    <div className="col-md-7">
+    <div className="col-12 col-md-7">
       <div className="card mb-4">
         <div className="card-body">
           <h5 className="card-title mb-3">Contact Information</h5>

@@ -62,7 +62,8 @@ function User({
           className="btn btn-outline-danger px-4" 
           onClick={handleLogout}
         >
-          🚪 Logout
+          <i className="ri-logout-box-line me-2"></i>
+           Logout
         </button>
       </div>
       

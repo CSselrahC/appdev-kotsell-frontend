@@ -55,32 +55,24 @@ function ProductList({ addToCart }) {
   return (
     <div className="container">
       <h1 className="mb-3">Product List</h1>
-      <div className="row">
+      <div className="row g-3">
         {products.map(product => {
           const hasImage = product.images && product.images.length > 0;
           const imageErrored = imageErrorMap[product.id];
           const quantity = quantities[product.id] || 0;
 
           return (
-            <div key={product.id} className="col-md-4 mb-3">
-              <div className="card shadow-sm h-100 d-flex flex-column">
-                <div style={{
-                  height: '180px',
-                  overflow: 'hidden',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  backgroundColor: '#f8f9fa',
-                  color: '#888',
-                  fontStyle: 'italic'
-                }}>
+            <div key={product.id} className="col-12 col-sm-6 col-md-4 mb-3 d-flex">
+              <div className="card shadow-sm h-100 d-flex flex-column w-100">
+                <div className="d-flex justify-content-center align-items-center bg-light" style={{height: '180px', overflow: 'hidden'}}>
                   {!hasImage || imageErrored ? (
-                    <div>No images available</div>
+                    <div className="text-muted">No images available</div>
                   ) : (
                     <img
                       src={product.images[0]}
                       alt={product.name}
-                      style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }}
+                      className="img-fluid"
+                      style={{ maxHeight: '100%', objectFit: 'contain' }}
                       onError={() => handleImageError(product.id)}
                     />
                   )}
@@ -114,30 +106,22 @@ function ProductList({ addToCart }) {
                     flexGrow: 0,
                     marginTop: 'auto',
                     justifyContent: 'start',
-                    maxWidth: '300px',
+                    width: '100%',
                   }} className="quantity-addcart-container">
-                    <div className="d-flex align-items-center" style={{ minWidth: '160px' }}>
+                    <div className="d-flex align-items-center" style={{ minWidth: 0 }}>
                       <button
                         className="btn btn-outline-secondary"
                         onClick={() => handleDecrement(product.id)}
                         aria-label="Decrease quantity"
                         disabled={quantity <= 0}
-                        style={{ minWidth: '38px', height: '38px' }}
+                        style={{ width: '38px', height: '38px' }}
                       >
                         -
                       </button>
                       <input
                         type="text"
                         className="form-control form-control-sm text-center"
-                        style={{
-                          width: '80px',
-                          margin: '0 5px',
-                          height: '38px',
-                          fontSize: '1rem',
-                          borderRadius: '4px',
-                          border: '1px solid #ced4da',
-                          color: '#000',
-                        }}
+                        style={{ width: '6.5rem', margin: '0 5px', height: '38px', maxWidth: '100%' }}
                         value={quantity}
                         onChange={(e) => handleQuantityChange(product.id, e.target.value)}
                         onBlur={() => handleInputBlur(product.id)}
@@ -147,7 +131,7 @@ function ProductList({ addToCart }) {
                         className="btn btn-outline-secondary"
                         onClick={() => handleIncrement(product.id)}
                         aria-label="Increase quantity"
-                        style={{ minWidth: '38px', height: '38px' }}
+                        style={{ width: '38px', height: '38px' }}
                       >
                         +
                       </button>
@@ -155,15 +139,9 @@ function ProductList({ addToCart }) {
 
                     <button
                       onClick={() => handleAddToCartWithQuantity(product)}
-                      className="btn btn-success btn-sm"
+                      className="btn btn-success btn-sm w-100"
                       disabled={quantity < 1}
-                      style={{
-                        backgroundColor: quantity >= 1 ? 'green' : 'grey',
-                        cursor: quantity >= 1 ? 'pointer' : 'not-allowed',
-                        flexGrow: 1,
-                        minWidth: '120px',
-                        height: '38px',
-                      }}
+                      style={{ backgroundColor: quantity >= 1 ? 'green' : 'grey', cursor: quantity >= 1 ? 'pointer' : 'not-allowed', height: '38px' }}
                     >
                       Add to Cart
                     </button>

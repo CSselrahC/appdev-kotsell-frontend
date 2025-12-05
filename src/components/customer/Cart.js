@@ -82,7 +82,7 @@ function Cart({ cart, setCart }) {
                           <input
                             type="number"
                             className="form-control form-control-sm text-center"
-                            style={{ width: '60px' }}
+                            style={{ width: '5.5rem', maxWidth: '100%' }}
                             value={item.quantity}
                             onChange={(e) => handleQuantityChange(item.id, parseInt(e.target.value) || 1)}
                             min="1"
@@ -119,10 +119,7 @@ function Cart({ cart, setCart }) {
           <div className="d-flex justify-content-end mt-3">
             <div className="text-end">
               <h4>Total: <strong>₱{total.toFixed(2)}</strong></h4>
-              <button
-                onClick={handleCheckout}
-                className="btn btn-dark btn-lg mt-2"
-              >
+              <button onClick={handleCheckout} className="btn btn-dark btn-lg mt-2">
                 Proceed to Checkout
               </button>
             </div>

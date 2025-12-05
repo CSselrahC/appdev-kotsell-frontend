@@ -38,6 +38,21 @@ function HomePage({ userName }) {
 
   const promo = activePromos.length > 0 ? activePromos[currentPromoIndex] : null;
 
+  // Rotating advertisement messages
+  const ads = [
+    'Upgrade your ride with premium vehicle parts! 99+ products available',
+    'Looking for car diecasts? Browse 99+ premium diecast models starting at great prices!',
+    'Looking for motor accessories? We got you! Everything you need at affordable prices.'
+  ];
+  const [currentAd, setCurrentAd] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setCurrentAd(prev => (prev + 1) % ads.length);
+    }, 10000); // 10 seconds
+    return () => clearInterval(id);
+  }, []);
+
   return (
     <div className="container mt-4">
       {/* Top Row: Welcome Banner & Buttons */}
@@ -65,48 +80,52 @@ function HomePage({ userName }) {
         </div>
       </div>
 
-      {/* PROMO CODE ADVERTISEMENT */}
-      <div
-        className="border bg-light d-flex align-items-center justify-content-center rounded mb-5 p-4"
-        style={{ minHeight: '100px', position: 'relative', fontSize: '1.25rem' }}
-      >
-        {promo ? (
-          <div className="text-center">
-            <div>
-              Use <strong>{promo.code}</strong> to get <strong>₱{promo.discount} off</strong> in your shopping!
+      {/* ROTATING ADVERTISEMENT BANNER */}
+      <div className="ad-rotator border bg-light rounded mb-5 p-3">
+        {ads.map((text, idx) => (
+          <div
+            key={idx}
+            className={`ad-item d-flex flex-column flex-md-row align-items-center justify-content-between w-100 ${idx === currentAd ? 'active' : ''}`}
+          >
+            <div className="ad-text text-center text-md-start px-3 py-2">
+              <h5 className="mb-1 fw-bold">{text}</h5>
             </div>
-            <div>Promo valid until {new Date(promo.endDate).toLocaleDateString()}.</div>
+
+            <div className="px-3 py-2">
+              <button
+                className="btn-shop-now"
+                onClick={() => navigate('/products')}
+                aria-label="Shop now"
+              >
+                Shop Now!
+              </button>
+            </div>
           </div>
-        ) : (
-          <div className="text-muted fst-italic">
-            No current promotions available.
-          </div>
-        )}
+        ))}
       </div>
 
       {/* FEATURED PRODUCTS */}
       <h5 className="text-center fw-bold mb-4">FEATURED PRODUCTS</h5>
-      <div className="row justify-content-center">
+      <div className="row g-3 justify-content-center">
         {featuredProducts.map((item) => (
           <div
             key={item.id}
-            className="col-md-3 col-sm-6 mb-4 d-flex justify-content-center"
+            className="col-12 col-sm-6 col-md-4 col-lg-3 d-flex"
           >
             <div
-              className="card border-0"
+              className="card border-0 w-100"
               style={{
-                width: '220px',
                 borderRadius: '15px',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                transition: 'transform 0.2s, box-shadow 0.2s',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                transition: 'transform 0.15s, box-shadow 0.15s',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-5px)';
-                e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.15)';
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.12)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)';
               }}
             >
               <div
@@ -122,27 +141,21 @@ function HomePage({ userName }) {
                   <img
                     src={item.images[0]}
                     alt={item.name}
+                    className="img-fluid"
                     style={{
                       maxHeight: '100%',
-                      maxWidth: '100%',
                       objectFit: 'contain',
                     }}
                   />
                 ) : (
-                  <span
-                    className="text-muted fst-italic"
-                    style={{ fontSize: '1rem' }}
-                  >
+                  <span className="text-muted fst-italic" style={{ fontSize: '1rem' }}>
                     No images available
                   </span>
                 )}
               </div>
               <div className="card-body text-start">
-                <h6 className="fw-semibold mb-1">{item.name}</h6>
-                <p
-                  className="mb-1 text-muted"
-                  style={{ fontSize: '0.9rem' }}
-                >
+                <h6 className="fw-semibold mb-1 text-truncate">{item.name}</h6>
+                <p className="mb-1 text-muted" style={{ fontSize: '0.9rem' }}>
                   ₱{item.price.toFixed(2)}
                 </p>
                 <div className="d-flex gap-2 mt-2">

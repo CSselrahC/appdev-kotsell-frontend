@@ -22,7 +22,8 @@ function CheckoutConfirmation({
         <div className="container mt-4">
             <h2>Thank you for your purchase!</h2>
             <p>You have bought the following products:</p>
-            <table className="table table-bordered">
+                <div className="table-responsive">
+                    <table className="table table-bordered">
                 <thead className="table-light">
                     <tr>
                         <th>Product Name</th>
@@ -40,8 +41,9 @@ function CheckoutConfirmation({
                             <td>₱{(item.price * item.quantity).toFixed(2)}</td>
                         </tr>
                     ))}
-                </tbody>
-            </table>
+                        </tbody>
+                    </table>
+                </div>
             <h3>Subtotal: ₱{boughtTotal.toFixed(2)}</h3>
             <h3>Discount: ₱{appliedDiscount.toFixed(2)}</h3>
             <h3>Shipping Fee: ₱{shippingFee.toFixed(2)}</h3>
@@ -51,9 +53,9 @@ function CheckoutConfirmation({
             <h3>Total Price: ₱{totalPriceWithShipping.toFixed(2)}</h3>
             <h4 className="mt-3">Payment Method: {paymentDisplayMap[paymentMethod] || paymentMethod}</h4>
             <div className="mt-4">
-                <Link to="/">
-                    <button className="btn btn-primary">Return Home</button>
-                </Link>
+                        <Link to="/">
+                            <button className="btn btn-primary">Return Home</button>
+                        </Link>
             </div>
         </div>
     );
