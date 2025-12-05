@@ -28,19 +28,19 @@ function AdminLoginPage() {
   return (
     <div className="vh-100 bg-light position-relative">
       {/* Back button - outside container, above the square */}
-      <button 
+      <button
         className="btn btn-outline-secondary position-absolute top-0 start-0 m-4 p-2 shadow-sm"
         onClick={handleBack}
         style={{ width: '48px', height: '48px', zIndex: 10 }}
       >
         ←
       </button>
-      
+
       {/* Login card container */}
       <div className="d-flex justify-content-center align-items-center vh-100">
         <div className="card shadow p-4" style={{ minWidth: 320, maxWidth: 400 }}>
           <h3 className="fw-bold text-center mb-3">Admin Login</h3>
-          
+
           {error && <div className="alert alert-danger py-2">{error}</div>}
           <form onSubmit={handleSubmit}>
             <div className="mb-3">

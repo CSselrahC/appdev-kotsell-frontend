@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 
@@ -7,7 +7,7 @@ import './App.css';
 import LandingPage from './components/LandingPage';
 
 // Customer components
-import HomePage from './components/customer/HomePage';  // Renamed for clarity
+import HomePage from './components/customer/HomePage';
 import NavBar from './components/customer/NavBar';
 import ProductList from './components/customer/ProductList';
 import Cart from './components/customer/Cart';
@@ -16,9 +16,10 @@ import Checkout from './components/customer/Checkout';
 import User from './components/customer/User';
 
 // Admin/Login components
-import AdminLoginPage from './components/admin/AdminLoginPage'; // Admin login
+import AdminLoginPage from './components/admin/AdminLoginPage';
 import AdminLayout from './components/admin/AdminLayout';
 import AdminDashboard from './components/admin/AdminDashboard';
+import AdminAddProduct from './components/admin/AdminAddProduct';
 
 // Simple guard for admin-only routes
 function RequireAdmin({ children }) {
@@ -188,7 +189,7 @@ function App() {
             </>
           } />
 
-          {/* Admin routes (protected) - FIXED NESTED ROUTING */}
+          {/* Admin routes (protected) - SIMPLIFIED */}
           <Route
             path="/admin"
             element={
@@ -198,22 +199,53 @@ function App() {
             }
           >
             <Route index element={<AdminDashboard transactions={transactions} usedCoupons={usedCoupons} />} />
-            <Route path="products" element={
+            
+            {/* Add Products */}
+            <Route path="products/add" element={<AdminAddProduct />} />
+            
+            {/* Edit Products (placeholder) */}
+            <Route path="products/edit" element={
               <div className="p-4">
-                <h2>Products Management</h2>
-                <p>Products page coming soon...</p>
+                <div className="row justify-content-center">
+                  <div className="col-lg-10">
+                    <div className="card shadow-sm border-0">
+                      <div className="card-header bg-warning text-dark">
+                        <h4 className="mb-0 fw-bold">Edit Products</h4>
+                      </div>
+                      <div className="card-body p-4">
+                        <p className="text-muted mb-4">
+                          Select a product from the list to edit, or this will show all products with edit buttons.
+                        </p>
+                        <div className="alert alert-info">
+                          <i className="bi bi-info-circle me-2"></i>
+                          Product editing form coming soon...
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             } />
-            <Route path="orders" element={
+            
+            {/* Account (placeholder) */}
+            <Route path="account" element={
               <div className="p-4">
-                <h2>Orders Management</h2>
-                <p>Orders page coming soon...</p>
-              </div>
-            } />
-            <Route path="users" element={
-              <div className="p-4">
-                <h2>Users Management</h2>
-                <p>Users page coming soon...</p>
+                <div className="row justify-content-center">
+                  <div className="col-lg-8">
+                    <div className="card shadow-sm border-0">
+                      <div className="card-header bg-info text-white">
+                        <h4 className="mb-0 fw-bold">Admin Account</h4>
+                      </div>
+                      <div className="card-body p-4">
+                        <p className="text-muted mb-4">Admin account settings and profile management.</p>
+                        <div className="alert alert-info">
+                          <i className="bi bi-info-circle me-2"></i>
+                          Account settings coming soon...
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             } />
           </Route>
