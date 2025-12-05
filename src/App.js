@@ -3,18 +3,18 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 
-import Home from './components/HomePage';
-import NavBar from './components/NavBar';
-import ProductList from './components/ProductList';
-import Cart from './components/Cart';
-import ProductDetails from './components/ProductDetails';
-import Checkout from './components/Checkout';
-import User from './components/User';
+import Home from './components/customer/HomePage';
+import NavBar from './components/customer/NavBar';
+import ProductList from './components/customer/ProductList';
+import Cart from './components/customer/Cart';
+import ProductDetails from './components/customer/ProductDetails';
+import Checkout from './components/customer/Checkout';
+import User from './components/customer/User';
 
 // NEW imports for admin/login
-import LoginPage from './pages/LoginPage';
-import AdminLayout from './pages/admin/AdminLayout';
-import AdminDashboard from './pages/admin/AdminDashboard';
+import LoginPage from './components/LoginPage';
+import AdminLayout from './components/admin/AdminLayout';
+import AdminDashboard from './components/admin/AdminDashboard';
 
 // Simple guard for admin-only routes
 function RequireAdmin({ children }) {
