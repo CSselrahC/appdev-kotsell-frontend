@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 function User({
   firstName,
@@ -22,6 +23,8 @@ function User({
   const [formBarangay, setFormBarangay] = useState(barangay);
   const [formCity, setFormCity] = useState(city);
   const [formPostalCode, setFormPostalCode] = useState(postalCode);
+  
+  const navigate = useNavigate();
 
   const handleSave = (e) => {
     e.preventDefault();
@@ -44,9 +47,25 @@ function User({
     setEdit(false);
   };
 
+  const handleLogout = () => {
+    // Clear admin status if any
+    localStorage.removeItem('isAdmin');
+    // Navigate to landing page
+    navigate('/');
+  };
+
   return (
     <div className="container my-5" style={{ maxWidth: '900px' }}>
-      <h2 className="fw-bold mb-4">Account</h2>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h2 className="fw-bold mb-0">Account</h2>
+        <button 
+          className="btn btn-outline-danger px-4" 
+          onClick={handleLogout}
+        >
+          🚪 Logout
+        </button>
+      </div>
+      
       <div className="card p-4" style={{ borderRadius: '10px' }}>
         <h3 className="fw-bold mb-4">Contact Information</h3>
         {edit ? (
@@ -165,7 +184,7 @@ function User({
               <th scope="col">Coupon Code</th>
               <th scope="col">Payment Method</th>
               <th scope="col">Delivery Address</th>
-              <th scope="col">Date &amp; Time</th>
+              <th scope="col">Date & Time</th>
             </tr>
           </thead>
           <tbody>
