@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import coupons from '../data/coupons.json';
+import coupons from '../../data/coupons.json';
 import CheckoutContact from './Checkout-contact';
 import CheckoutSummary from './Checkout-summary';
 import CheckoutConfirmation from './Checkout-confirmation';

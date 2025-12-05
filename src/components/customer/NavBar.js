@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Offcanvas, Nav, Button } from 'react-bootstrap';
 import { Link, useLocation } from 'react-router-dom';
-import '../App.css';
+import '../../App.css';
 
 function NavBar() {
   const [show, setShow] = useState(false);

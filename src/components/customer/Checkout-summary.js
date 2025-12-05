@@ -1,5 +1,5 @@
 import React from 'react';
-import products from '../data/products.json';
+import products from '../../data/products.json';
 
 function CheckoutSummary({
   cart,
