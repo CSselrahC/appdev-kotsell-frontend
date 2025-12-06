@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import products from '../../data/products.json';
 
 function ProductDetails({ cart, setCart }) {
   const { id } = useParams();
   const productId = parseInt(id);
   const product = products.find(p => p.id === productId);
+  const navigate = useNavigate();
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [imageError, setImageError] = useState(false);
@@ -76,6 +77,16 @@ function ProductDetails({ cart, setCart }) {
     }
   };
 
+  const handleBuyNow = () => {
+    // Use the same add-to-cart logic, then navigate to checkout
+    if (quantity > 0) {
+      // reuse existing add-to-cart behavior
+      handleAddToCart();
+      // after adding, navigate to checkout and pass product + quantity
+      navigate('/', { state: { product, quantity } });
+    }
+  };
+
   return (
     <div className="container mt-4">
       <Link to="/products" className="btn btn-secondary mb-3">Back to Product List</Link>
@@ -129,7 +140,7 @@ function ProductDetails({ cart, setCart }) {
             <h6 className="text-muted mb-2">Category: {Array.isArray(product.category) ? product.category.join(', ') : product.category}</h6>
             <p className="mb-3">Price: <strong>₱{product.price.toFixed(2)}</strong></p>
 
-            <div className="d-flex flex-column flex-sm-row align-items-stretch gap-2" style={{ marginBottom: '15px' }}>
+            <div className="d-flex flex-column gap-2 align-items-stretch" style={{ marginBottom: '15px' }}>
               <div className="d-flex align-items-center" style={{ gap: '8px', minWidth: 0 }}>
                 <button
                   className="btn btn-outline-secondary"
@@ -153,15 +164,24 @@ function ProductDetails({ cart, setCart }) {
                   style={{ width: '40px', height: '40px' }}
                 >+</button>
               </div>
+              <div className="d-flex gap-2 w-100">
+                <button
+                  onClick={handleAddToCart}
+                  className={`btn ${quantity > 0 ? 'btn-success' : 'btn-secondary'} flex-grow-4`}
+                  disabled={quantity <= 0}
+                  style={{ height: '40px' }}
+                >
+                  Add to Cart
+                </button>
 
-              <button
-                onClick={handleAddToCart}
-                className={`btn ${quantity > 0 ? 'btn-success' : 'btn-secondary'} flex-grow-1`}
-                disabled={quantity <= 0}
-                style={{ height: '40px' }}
-              >
-                Add to Cart
-              </button>
+                <button
+                  onClick={handleBuyNow}
+                  className="btn btn-outline-primary"
+                  style={{ height: '40px' }}
+                >
+                  Buy Product
+                </button>
+              </div>
             </div>
 
             {message && <p className="mt-2 text-success">{message}</p>}

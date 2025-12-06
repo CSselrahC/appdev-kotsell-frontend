@@ -164,7 +164,7 @@ function HomePage({ userName }) {
                     style={{ borderRadius: '8px' }}
                     onClick={() => navigate(`/details/${item.id}`)}
                   >
-                    BUY
+                    View Product
                   </button>
                 </div>
               </div>
