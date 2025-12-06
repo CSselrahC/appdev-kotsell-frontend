@@ -12,24 +12,33 @@ function AdminEditProductDetails() {
     stock: '',
     category: ''
   });
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [imageError, setImageError] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [product, setProduct] = useState(null);
 
   useEffect(() => {
-    // Load product from localStorage or initial data
-    const stored = localStorage.getItem('products');
-    let products = stored ? JSON.parse(stored) : productsData;
+    // Load products directly from products.json
+    const loadedProducts = productsData.map(product => ({
+      ...product,
+      stock: product.stock || 0
+    }));
     
-    const product = products.find(p => p.id === parseInt(id));
-    if (product) {
+    // Also save to localStorage for any additions
+    localStorage.setItem('products', JSON.stringify(loadedProducts));
+    
+    const foundProduct = loadedProducts.find(p => p.id === parseInt(id));
+    if (foundProduct) {
+      setProduct(foundProduct);
       setFormData({
-        name: product.name,
-        description: product.description || '',
-        price: product.price,
-        stock: product.stock || 0,
-        category: product.category?.[0] || ''
+        name: foundProduct.name,
+        description: foundProduct.description || '',
+        price: foundProduct.price,
+        stock: foundProduct.stock || 0,
+        category: foundProduct.category?.[0] || ''
       });
       setLoading(false);
     } else {
@@ -37,6 +46,33 @@ function AdminEditProductDetails() {
       setLoading(false);
     }
   }, [id]);
+
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
+  const prevImage = () => {
+    setImageError(false);
+    if (product?.images && product.images.length > 0) {
+      setCurrentImageIndex(prevIndex =>
+        prevIndex === 0 ? product.images.length - 1 : prevIndex - 1
+      );
+    }
+  };
+
+  const nextImage = () => {
+    setImageError(false);
+    if (product?.images && product.images.length > 0) {
+      setCurrentImageIndex(prevIndex =>
+        prevIndex === product.images.length - 1 ? 0 : prevIndex + 1
+      );
+    }
+  };
+
+  const selectImage = (index) => {
+    setImageError(false);
+    setCurrentImageIndex(index);
+  };
 
   const handleChange = (e) => {
     setFormData({
@@ -125,7 +161,7 @@ function AdminEditProductDetails() {
   return (
     <div className="container-fluid mt-4">
       <div className="row justify-content-center">
-        <div className="col-12 col-lg-8 col-xl-6">
+        <div className="col-12 col-lg-8 col-xl-8">
           <div className="card">
             <div className="card-body">
               <h5 className="card-title mb-4">
@@ -158,85 +194,161 @@ function AdminEditProductDetails() {
               )}
 
               <form onSubmit={handleSubmit}>
-                <div className="mb-3">
-                  <label className="form-label">Product Name</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    placeholder="Product name"
-                    required
-                  />
-                </div>
+                <div className="row g-3">
+                  {/* Image Section */}
+                  <div className="col-12 col-md-5">
+                    <label className="form-label text-muted small mb-3">Product Images</label>
+                    <div className="d-flex justify-content-center align-items-center" style={{ position: 'relative', minHeight: '300px' }}>
+                      {product?.images && product.images.length > 1 && (
+                        <button 
+                          type="button"
+                          onClick={prevImage} 
+                          className="btn btn-link text-primary p-0 me-2" 
+                          style={{ fontSize: '1.75rem', position: 'absolute', left: 0, zIndex: 10 }}
+                          aria-label="Previous Image"
+                        >
+                          &lt;
+                        </button>
+                      )}
 
-                <div className="mb-3">
-                  <label className="form-label">Description</label>
-                  <textarea
-                    className="form-control"
-                    name="description"
-                    rows={4}
-                    value={formData.description}
-                    onChange={handleChange}
-                    placeholder="Product description"
-                  />
-                </div>
+                      <div 
+                        className="product-image-box w-100" 
+                        style={{ 
+                          minHeight: '300px', 
+                          backgroundColor: '#f8f9fa', 
+                          display: 'flex', 
+                          justifyContent: 'center', 
+                          alignItems: 'center', 
+                          borderRadius: '8px',
+                          border: '1px solid #dee2e6'
+                        }}
+                      >
+                        {!product?.images || product.images.length === 0 || imageError ? (
+                          <div style={{ fontStyle: 'italic', color: '#888' }}>No images available</div>
+                        ) : (
+                          <img
+                            src={product.images[currentImageIndex]}
+                            alt={`${formData.name} ${currentImageIndex + 1}`}
+                            onError={handleImageError}
+                            className="img-fluid"
+                            style={{ maxWidth: '100%', maxHeight: '300px', objectFit: 'contain', borderRadius: '8px' }}
+                          />
+                        )}
+                      </div>
 
-                <div className="row g-3 mb-3">
-                  <div className="col-md-6">
-                    <label className="form-label">Price (₱)</label>
-                    <div className="input-group">
-                      <span className="input-group-text">₱</span>
+                      {product?.images && product.images.length > 1 && (
+                        <button 
+                          type="button"
+                          onClick={nextImage} 
+                          className="btn btn-link text-primary p-0 ms-2" 
+                          style={{ fontSize: '1.75rem', position: 'absolute', right: 0, zIndex: 10 }}
+                          aria-label="Next Image"
+                        >
+                          &gt;
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Image Navigation Dots */}
+                    {product?.images && product.images.length > 0 && (
+                      <div className="text-center mt-3">
+                        {product.images.map((_, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => selectImage(idx)}
+                            className={`btn btn-sm me-1 ${idx === currentImageIndex ? 'btn-primary' : 'btn-outline-secondary'}`}
+                            aria-label={`Select image ${idx + 1}`}
+                            style={{ width: '10px', height: '10px', padding: 0, borderRadius: '50%' }}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Form Section */}
+                  <div className="col-12 col-md-7">
+                    <div className="mb-3">
+                      <label className="form-label">Product Name</label>
                       <input
-                        type="number"
-                        step="0.01"
-                        min="0"
+                        type="text"
                         className="form-control"
-                        name="price"
-                        value={formData.price}
+                        name="name"
+                        value={formData.name}
                         onChange={handleChange}
-                        placeholder="0.00"
+                        placeholder="Product name"
                         required
                       />
                     </div>
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Stock</label>
-                    <input
-                      type="number"
-                      min="0"
-                      className="form-control"
-                      name="stock"
-                      value={formData.stock}
-                      onChange={handleChange}
-                      placeholder="0"
-                      required
-                    />
-                  </div>
-                </div>
 
-                <div className="mb-3">
-                  <label className="form-label">Category</label>
-                  <select
-                    className="form-select"
-                    name="category"
-                    value={formData.category}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value="">Select category...</option>
-                    <option value="Car Parts">Car Parts</option>
-                    <option value="Tires">Tires</option>
-                    <option value="Spoiler">Spoiler</option>
-                    <option value="Electronics">Electronics</option>
-                    <option value="Clothing">Clothing</option>
-                    <option value="Books">Books</option>
-                    <option value="Home">Home & Garden</option>
-                    <option value="Sports">Sports</option>
-                    <option value="Merchandise">Merchandise</option>
-                    <option value="Other">Other</option>
-                  </select>
+                    <div className="mb-3">
+                      <label className="form-label">Description</label>
+                      <textarea
+                        className="form-control"
+                        name="description"
+                        rows={3}
+                        value={formData.description}
+                        onChange={handleChange}
+                        placeholder="Product description"
+                      />
+                    </div>
+
+                    <div className="row g-3 mb-3">
+                      <div className="col-md-6">
+                        <label className="form-label">Price (₱)</label>
+                        <div className="input-group">
+                          <span className="input-group-text">₱</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            className="form-control"
+                            name="price"
+                            value={formData.price}
+                            onChange={handleChange}
+                            placeholder="0.00"
+                            required
+                          />
+                        </div>
+                      </div>
+                      <div className="col-md-6">
+                        <label className="form-label">Stock</label>
+                        <input
+                          type="number"
+                          min="0"
+                          className="form-control"
+                          name="stock"
+                          value={formData.stock}
+                          onChange={handleChange}
+                          placeholder="0"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mb-3">
+                      <label className="form-label">Category</label>
+                      <select
+                        className="form-select"
+                        name="category"
+                        value={formData.category}
+                        onChange={handleChange}
+                        required
+                      >
+                        <option value="">Select category...</option>
+                        <option value="Car Parts">Car Parts</option>
+                        <option value="Tires">Tires</option>
+                        <option value="Spoiler">Spoiler</option>
+                        <option value="Electronics">Electronics</option>
+                        <option value="Clothing">Clothing</option>
+                        <option value="Books">Books</option>
+                        <option value="Home">Home & Garden</option>
+                        <option value="Sports">Sports</option>
+                        <option value="Merchandise">Merchandise</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="d-flex gap-2 justify-content-between mt-4 flex-wrap">

@@ -8,18 +8,14 @@ function AdminEditProducts() {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    // Load products from localStorage if available, otherwise use initial data
-    const stored = localStorage.getItem('products');
-    if (stored) {
-      try {
-        setProducts(JSON.parse(stored));
-      } catch (error) {
-        console.error('Error loading products:', error);
-        setProducts(productsData);
-      }
-    } else {
-      setProducts(productsData);
-    }
+    // Load products directly from products.json
+    const productsWithStock = productsData.map(product => ({
+      ...product,
+      stock: product.stock || 0
+    }));
+    setProducts(productsWithStock);
+    // Also save to localStorage for consistency
+    localStorage.setItem('products', JSON.stringify(productsWithStock));
   }, []);
 
   const filteredProducts = products.filter(product =>
