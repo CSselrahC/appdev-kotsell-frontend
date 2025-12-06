@@ -13,39 +13,46 @@ function AdminLoginPage() {
     setError('');
     setIsLoading(true);
 
-    // Get admin account from localStorage
-    const adminAccountString = localStorage.getItem('adminAccount');
-    let adminAccount = null;
+    // Simulate a small delay to prevent race conditions
+    setTimeout(() => {
+      // Get admin account from localStorage
+      const adminAccountString = localStorage.getItem('adminAccount');
+      let adminAccount = null;
 
-    if (adminAccountString) {
-      try {
-        adminAccount = JSON.parse(adminAccountString);
-      } catch (error) {
-        console.error('Error parsing admin account:', error);
+      if (adminAccountString) {
+        try {
+          adminAccount = JSON.parse(adminAccountString);
+        } catch (error) {
+          console.error('Error parsing admin account:', error);
+          setError('An error occurred. Please try again.');
+          setIsLoading(false);
+          return;
+        }
       }
-    }
 
-    // If no admin account exists, create default one
-    if (!adminAccount) {
-      adminAccount = {
-        adminId: 'ADMIN001',
-        username: 'admin',
-        email: 'admin@kotsell.com',
-        password: 'password123',
-        name: 'Administrator'
-      };
-      localStorage.setItem('adminAccount', JSON.stringify(adminAccount));
-    }
+      // If no admin account exists, create default one
+      if (!adminAccount) {
+        adminAccount = {
+          adminId: 'ADMIN001',
+          username: 'admin',
+          email: 'admin@kotsell.com',
+          password: 'password123',
+          name: 'Administrator'
+        };
+        localStorage.setItem('adminAccount', JSON.stringify(adminAccount));
+      }
 
-    // Validate credentials
-    if (email === adminAccount.email && password === adminAccount.password) {
-      localStorage.setItem('isAdmin', 'true');
-      setIsLoading(false);
-      navigate('/admin');
-    } else {
-      setError('Invalid email or password');
-      setIsLoading(false);
-    }
+      // Validate credentials
+      if (email === adminAccount.email && password === adminAccount.password) {
+        localStorage.setItem('isAdmin', 'true');
+        setIsLoading(false);
+        // Use window.location or a small delay before navigate to ensure state is set
+        navigate('/admin', { replace: true });
+      } else {
+        setError('Invalid email or password');
+        setIsLoading(false);
+      }
+    }, 300);
   };
 
   const handleBack = () => {

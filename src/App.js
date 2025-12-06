@@ -1,40 +1,38 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 
 // Landing page
 import LandingPage from './components/LandingPage';
 
-// Customer components
-import HomePage from './components/customer/HomePage';
-import NavBar from './components/customer/NavBar';
-import ProductList from './components/customer/ProductList';
-import Cart from './components/customer/Cart';
-import ProductDetails from './components/customer/ProductDetails';
-import Checkout from './components/customer/Checkout';
-import User from './components/customer/User';
+// Customer routes
+import CustomerRoutes from './components/CustomerRoutes';
 
 // Admin components
 import AdminLoginPage from './components/admin/AdminLoginPage';
 import AdminRoutes from './components/AdminRoutes';
 
+const defaultPaymentMethod = "COD";
+const shippingFee = 50;
+
 function App() {
+  // Cart state
   const [cart, setCart] = useState([]);
+
+  // Transaction state
   const [transactions, setTransactions] = useState([]);
   const [usedCoupons, setUsedCoupons] = useState([]);
 
-  // User details
-  const [firstName, setFirstName] = useState("Juan");
-  const [lastName, setLastName] = useState("Dela Cruz");
-  const [houseStreet, setHouseStreet] = useState("Blk 2 Lot 4");
-  const [barangay, setBarangay] = useState("Pulo");
-  const [city, setCity] = useState("Cabuyao");
-  const [postalCode, setPostalCode] = useState("4025");
-
-  // Payment method default
-  const defaultPaymentMethod = "COD";
-  const shippingFee = 50;
+  // User details state
+  const [userDetails, setUserDetails] = useState({
+    firstName: "Juan",
+    lastName: "Dela Cruz",
+    houseStreet: "Blk 2 Lot 4",
+    barangay: "Pulo",
+    city: "Cabuyao",
+    postalCode: "4025"
+  });
 
   useEffect(() => {
     document.title = "KOTSELL";
@@ -67,7 +65,7 @@ function App() {
 
     const deliveryAddress = contactInfo
       ? `${contactInfo.houseStreet}, ${contactInfo.barangay}, ${contactInfo.city}, ${contactInfo.postalCode}`
-      : `${houseStreet}, ${barangay}, ${city}, ${postalCode}`;
+      : `${userDetails.houseStreet}, ${userDetails.barangay}, ${userDetails.city}, ${userDetails.postalCode}`;
 
     setTransactions([
       ...transactions,
@@ -96,16 +94,6 @@ function App() {
           {/* Landing page as root */}
           <Route path="/" element={<LandingPage />} />
 
-          {/* Homepage route */}
-          <Route path="/homepage" element={
-            <>
-              <NavBar cart={cart} />
-              <main className="main-content">
-                <HomePage userName={firstName} />
-              </main>
-            </>
-          } />
-
           {/* Admin login */}
           <Route path="/admin-login" element={<AdminLoginPage />} />
 
@@ -116,82 +104,37 @@ function App() {
               localStorage.getItem('isAdmin') === 'true' ? (
                 <AdminRoutes transactions={transactions} usedCoupons={usedCoupons} />
               ) : (
-                <Navigate to="/" replace />
+                <Navigate to="/admin-login" replace />
               )
             }
           />
-          
-          <Route path="/products" element={
-            <>
-              <NavBar cart={cart} />
-              <main className="main-content">
-                <ProductList addToCart={addToCart} />
-              </main>
-            </>
-          } />
-          
-          <Route path="/cart" element={
-            <>
-              <NavBar cart={cart} />
-              <main className="main-content">
-                <Cart cart={cart} setCart={setCart} />
-              </main>
-            </>
-          } />
-          
-          <Route path="/details/:id" element={
-            <>
-              <NavBar cart={cart} />
-              <main className="main-content">
-                <ProductDetails cart={cart} setCart={setCart} />
-              </main>
-            </>
-          } />
-          
-          <Route path="/checkout" element={
-            <>
-              <NavBar cart={cart} />
-              <main className="main-content">
-                <Checkout
-                  cart={cart}
-                  setCart={setCart}
-                  onTransaction={handleTransaction}
-                  usedCoupons={usedCoupons}
-                  defaultContactInfo={{
-                    firstName,
-                    lastName,
-                    houseStreet,
-                    barangay,
-                    city,
-                    postalCode,
-                  }}
-                />
-              </main>
-            </>
-          } />
-          
-          <Route path="/user" element={
-            <>
-              <NavBar cart={cart} />
-              <main className="main-content">
-                <User
-                  firstName={firstName}
-                  setFirstName={setFirstName}
-                  lastName={lastName}
-                  setLastName={setLastName}
-                  houseStreet={houseStreet}
-                  setHouseStreet={setHouseStreet}
-                  barangay={barangay}
-                  setBarangay={setBarangay}
-                  city={city}
-                  setCity={setCity}
-                  postalCode={postalCode}
-                  setPostalCode={setPostalCode}
-                  transactions={transactions}
-                />
-              </main>
-            </>
-          } />
+
+          {/* Customer routes */}
+          <Route
+            path="/*"
+            element={
+              <CustomerRoutes
+                cart={cart}
+                setCart={setCart}
+                transactions={transactions}
+                onTransaction={handleTransaction}
+                usedCoupons={usedCoupons}
+                firstName={userDetails.firstName}
+                setFirstName={(value) => setUserDetails({ ...userDetails, firstName: value })}
+                lastName={userDetails.lastName}
+                setLastName={(value) => setUserDetails({ ...userDetails, lastName: value })}
+                houseStreet={userDetails.houseStreet}
+                setHouseStreet={(value) => setUserDetails({ ...userDetails, houseStreet: value })}
+                barangay={userDetails.barangay}
+                setBarangay={(value) => setUserDetails({ ...userDetails, barangay: value })}
+                city={userDetails.city}
+                setCity={(value) => setUserDetails({ ...userDetails, city: value })}
+                postalCode={userDetails.postalCode}
+                setPostalCode={(value) => setUserDetails({ ...userDetails, postalCode: value })}
+                addToCart={addToCart}
+              />
+            }
+          />
 
           {/* Fallback to landing */}
           <Route path="*" element={<Navigate to="/" replace />} />
