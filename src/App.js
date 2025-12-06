@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 
@@ -7,7 +7,7 @@ import './App.css';
 import LandingPage from './components/LandingPage';
 
 // Customer components
-import HomePage from './components/customer/HomePage';  // Renamed for clarity
+import HomePage from './components/customer/HomePage';
 import NavBar from './components/customer/NavBar';
 import ProductList from './components/customer/ProductList';
 import Cart from './components/customer/Cart';
@@ -15,16 +15,9 @@ import ProductDetails from './components/customer/ProductDetails';
 import Checkout from './components/customer/Checkout';
 import User from './components/customer/User';
 
-// Admin/Login components
-import AdminLoginPage from './components/admin/AdminLoginPage'; // Admin login
-import AdminLayout from './components/admin/AdminLayout';
-import AdminDashboard from './components/admin/AdminDashboard';
-
-// Simple guard for admin-only routes
-function RequireAdmin({ children }) {
-  const isAdmin = localStorage.getItem('isAdmin') === 'true';
-  return isAdmin ? children : <Navigate to="/" replace />;
-}
+// Admin components
+import AdminLoginPage from './components/admin/AdminLoginPage';
+import AdminRoutes from './components/AdminRoutes';
 
 function App() {
   const [cart, setCart] = useState([]);
@@ -115,6 +108,18 @@ function App() {
 
           {/* Admin login */}
           <Route path="/admin-login" element={<AdminLoginPage />} />
+
+          {/* Admin routes (protected) */}
+          <Route
+            path="/admin/*"
+            element={
+              localStorage.getItem('isAdmin') === 'true' ? (
+                <AdminRoutes transactions={transactions} usedCoupons={usedCoupons} />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
           
           <Route path="/products" element={
             <>
@@ -187,36 +192,6 @@ function App() {
               </main>
             </>
           } />
-
-          {/* Admin routes (protected) - FIXED NESTED ROUTING */}
-          <Route
-            path="/admin"
-            element={
-              <RequireAdmin>
-                <AdminLayout />
-              </RequireAdmin>
-            }
-          >
-            <Route index element={<AdminDashboard transactions={transactions} usedCoupons={usedCoupons} />} />
-            <Route path="products" element={
-              <div className="p-4">
-                <h2>Products Management</h2>
-                <p>Products page coming soon...</p>
-              </div>
-            } />
-            <Route path="orders" element={
-              <div className="p-4">
-                <h2>Orders Management</h2>
-                <p>Orders page coming soon...</p>
-              </div>
-            } />
-            <Route path="users" element={
-              <div className="p-4">
-                <h2>Users Management</h2>
-                <p>Users page coming soon...</p>
-              </div>
-            } />
-          </Route>
 
           {/* Fallback to landing */}
           <Route path="*" element={<Navigate to="/" replace />} />
