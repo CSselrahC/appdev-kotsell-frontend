@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import coupons from '../../data/coupons.json';
-import products from '../../data/products.json';
+import { productAPI } from '../../services/api';
 
 function HomePage({ userName }) {
   const [currentPromoIndex, setCurrentPromoIndex] = useState(0);
@@ -30,10 +30,16 @@ function HomePage({ userName }) {
   }, [activePromos]);
 
   useEffect(() => {
-    // Select 4 random unique products from products.json
-    const shuffled = [...products].sort(() => 0.5 - Math.random());
-    const selected = shuffled.slice(0, 4);
-    setFeaturedProducts(selected);
+    // Fetch products from API and select 4 random unique products
+    productAPI.getAll()
+      .then(fetchedProducts => {
+        const shuffled = [...fetchedProducts].sort(() => 0.5 - Math.random());
+        const selected = shuffled.slice(0, 4);
+        setFeaturedProducts(selected);
+      })
+      .catch(() => {
+        setFeaturedProducts([]);
+      });
   }, []);
 
   const promo = activePromos.length > 0 ? activePromos[currentPromoIndex] : null;

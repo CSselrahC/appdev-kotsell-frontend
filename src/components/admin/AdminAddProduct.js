@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import productsData from '../../data/products.json';
+import { productAPI } from '../../services/api';
 
 function AdminAddProduct() {
   const navigate = useNavigate();
@@ -14,14 +14,20 @@ function AdminAddProduct() {
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Initialize products from products.json
-    const productsWithStock = productsData.map(product => ({
-      ...product,
-      stock: product.stock || 0
-    }));
-    setProducts(productsWithStock);
+    // Load products from API
+    const loadProducts = async () => {
+      try {
+        const fetchedProducts = await productAPI.getAll();
+        setProducts(fetchedProducts);
+      } catch (err) {
+        console.error('Error loading products:', err);
+      }
+    };
+    
+    loadProducts();
   }, []);
 
   const handleChange = (e) => {
@@ -42,9 +48,8 @@ function AdminAddProduct() {
     }
 
     try {
-      // Load current products
+      setLoading(true);
       const newProduct = {
-        id: Math.max(...products.map(p => p.id), 0) + 1,
         name: formData.name,
         description: formData.description || '',
         price: parseFloat(formData.price),
@@ -53,12 +58,13 @@ function AdminAddProduct() {
         images: []
       };
       
-      // Add to products array
-      const updatedProducts = [...products, newProduct];
-      setProducts(updatedProducts);
-      localStorage.setItem('products', JSON.stringify(updatedProducts));
+      // Call API to add product
+      const addedProduct = await productAPI.create(newProduct);
       
-      console.log('Product added:', newProduct);
+      // Update local products list
+      setProducts([...products, addedProduct]);
+      
+      console.log('Product added:', addedProduct);
       setSuccess('Product added successfully!');
       setFormData({ name: '', description: '', price: '', stock: '', category: '' });
       
@@ -68,6 +74,8 @@ function AdminAddProduct() {
     } catch (error) {
       console.error('Error:', error);
       setError('Failed to add product: ' + error.message);
+    } finally {
+      setLoading(false);
     }
   };
 

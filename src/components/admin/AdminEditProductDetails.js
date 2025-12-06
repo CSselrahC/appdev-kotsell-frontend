@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import productsData from '../../data/products.json';
+import { productAPI } from '../../services/api';
 
 function AdminEditProductDetails() {
   const navigate = useNavigate();
@@ -21,29 +21,30 @@ function AdminEditProductDetails() {
   const [product, setProduct] = useState(null);
 
   useEffect(() => {
-    // Load products directly from products.json
-    const loadedProducts = productsData.map(product => ({
-      ...product,
-      stock: product.stock || 0
-    }));
+    // Load product from API
+    const loadProduct = async () => {
+      try {
+        setLoading(true);
+        const foundProduct = await productAPI.getById(parseInt(id));
+        setProduct(foundProduct);
+        setFormData({
+          name: foundProduct.name,
+          description: foundProduct.description || '',
+          price: foundProduct.price,
+          stock: foundProduct.stock || 0,
+          category: foundProduct.category?.[0] || ''
+        });
+        setError('');
+      } catch (err) {
+        console.error('Error loading product:', err);
+        setError('Failed to load product from API');
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    // Also save to localStorage for any additions
-    localStorage.setItem('products', JSON.stringify(loadedProducts));
-    
-    const foundProduct = loadedProducts.find(p => p.id === parseInt(id));
-    if (foundProduct) {
-      setProduct(foundProduct);
-      setFormData({
-        name: foundProduct.name,
-        description: foundProduct.description || '',
-        price: foundProduct.price,
-        stock: foundProduct.stock || 0,
-        category: foundProduct.category?.[0] || ''
-      });
-      setLoading(false);
-    } else {
-      setError('Product not found.');
-      setLoading(false);
+    if (id) {
+      loadProduct();
     }
   }, [id]);
 
@@ -92,18 +93,7 @@ function AdminEditProductDetails() {
     }
 
     try {
-      const stored = localStorage.getItem('products');
-      let products = stored ? JSON.parse(stored) : productsData;
-
-      const productIndex = products.findIndex(p => p.id === parseInt(id));
-      if (productIndex === -1) {
-        setError('Product not found.');
-        return;
-      }
-
-      // Update the product
-      products[productIndex] = {
-        ...products[productIndex],
+      const updatedProduct = {
         name: formData.name,
         description: formData.description,
         price: parseFloat(formData.price),
@@ -111,8 +101,10 @@ function AdminEditProductDetails() {
         category: [formData.category]
       };
 
-      localStorage.setItem('products', JSON.stringify(products));
-      console.log('Product updated:', products[productIndex]);
+      // Call API to update product
+      await productAPI.update(parseInt(id), updatedProduct);
+      
+      console.log('Product updated:', updatedProduct);
       setSuccess('Product updated successfully!');
 
       // Redirect after 2 seconds
@@ -125,11 +117,8 @@ function AdminEditProductDetails() {
 
   const handleDelete = async () => {
     try {
-      const stored = localStorage.getItem('products');
-      let products = stored ? JSON.parse(stored) : productsData;
-
-      products = products.filter(p => p.id !== parseInt(id));
-      localStorage.setItem('products', JSON.stringify(products));
+      // Call API to delete product
+      await productAPI.delete(parseInt(id));
 
       setShowDeleteModal(false);
       setSuccess('Product deleted successfully!');

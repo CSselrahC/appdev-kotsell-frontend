@@ -1,21 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import productsData from '../../data/products.json';
+import { productAPI } from '../../services/api';
 
 function AdminEditProducts() {
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Load products directly from products.json
-    const productsWithStock = productsData.map(product => ({
-      ...product,
-      stock: product.stock || 0
-    }));
-    setProducts(productsWithStock);
-    // Also save to localStorage for consistency
-    localStorage.setItem('products', JSON.stringify(productsWithStock));
+    // Load products from API
+    const loadProducts = async () => {
+      try {
+        setLoading(true);
+        const fetchedProducts = await productAPI.getAll();
+        setProducts(fetchedProducts);
+        setError(null);
+      } catch (err) {
+        console.error('Error loading products:', err);
+        setError('Failed to load products from API');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadProducts();
   }, []);
 
   const filteredProducts = products.filter(product =>

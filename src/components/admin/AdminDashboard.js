@@ -1,22 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import productsData from '../../data/products.json';
+import { productAPI } from '../../services/api';
 
 function AdminDashboard({ transactions = [] }) {
   const [products, setProducts] = useState([]);
   const [bestSellingProduct, setBestSellingProduct] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [imageError, setImageError] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Load products directly from products.json
-    const loadedProducts = productsData.map(product => ({
-      ...product,
-      stock: product.stock || 0
-    }));
-    
-    setProducts(loadedProducts);
-
-    // Calculate best-selling product from transactions
+    // Load products from API
+    const loadProducts = async () => {
+      try {
+        setLoading(true);
+        const loadedProducts = await productAPI.getAll();
+        setProducts(loadedProducts);
+        
+        // Calculate best-selling product from transactions
     if (transactions && transactions.length > 0) {
       const productSales = {};
       
@@ -54,8 +55,18 @@ function AdminDashboard({ transactions = [] }) {
     } else if (loadedProducts.length > 0) {
       // If no transactions, pick a random product
       const randomProduct = loadedProducts[Math.floor(Math.random() * loadedProducts.length)];
-      setBestSellingProduct(randomProduct);
-    }
+        setBestSellingProduct(randomProduct);
+        }
+        setError(null);
+      } catch (err) {
+        console.error('Error loading products:', err);
+        setError('Failed to load products from API');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadProducts();
   }, [transactions]);
 
   const totalProducts = products.length;
