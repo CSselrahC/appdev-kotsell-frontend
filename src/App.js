@@ -15,17 +15,9 @@ import ProductDetails from './components/customer/ProductDetails';
 import Checkout from './components/customer/Checkout';
 import User from './components/customer/User';
 
-// Admin/Login components
+// Admin components
 import AdminLoginPage from './components/admin/AdminLoginPage';
-import AdminLayout from './components/admin/AdminLayout';
-import AdminDashboard from './components/admin/AdminDashboard';
-import AdminAddProduct from './components/admin/AdminAddProduct';
-
-// Simple guard for admin-only routes
-function RequireAdmin({ children }) {
-  const isAdmin = localStorage.getItem('isAdmin') === 'true';
-  return isAdmin ? children : <Navigate to="/" replace />;
-}
+import AdminRoutes from './components/AdminRoutes';
 
 function App() {
   const [cart, setCart] = useState([]);
@@ -116,6 +108,18 @@ function App() {
 
           {/* Admin login */}
           <Route path="/admin-login" element={<AdminLoginPage />} />
+
+          {/* Admin routes (protected) */}
+          <Route
+            path="/admin/*"
+            element={
+              localStorage.getItem('isAdmin') === 'true' ? (
+                <AdminRoutes transactions={transactions} usedCoupons={usedCoupons} />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
           
           <Route path="/products" element={
             <>
@@ -188,67 +192,6 @@ function App() {
               </main>
             </>
           } />
-
-          {/* Admin routes (protected) - SIMPLIFIED */}
-          <Route
-            path="/admin"
-            element={
-              <RequireAdmin>
-                <AdminLayout />
-              </RequireAdmin>
-            }
-          >
-            <Route index element={<AdminDashboard transactions={transactions} usedCoupons={usedCoupons} />} />
-            
-            {/* Add Products */}
-            <Route path="products/add" element={<AdminAddProduct />} />
-            
-            {/* Edit Products (placeholder) */}
-            <Route path="products/edit" element={
-              <div className="p-4">
-                <div className="row justify-content-center">
-                  <div className="col-lg-10">
-                    <div className="card shadow-sm border-0">
-                      <div className="card-header bg-warning text-dark">
-                        <h4 className="mb-0 fw-bold">Edit Products</h4>
-                      </div>
-                      <div className="card-body p-4">
-                        <p className="text-muted mb-4">
-                          Select a product from the list to edit, or this will show all products with edit buttons.
-                        </p>
-                        <div className="alert alert-info">
-                          <i className="bi bi-info-circle me-2"></i>
-                          Product editing form coming soon...
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            } />
-            
-            {/* Account (placeholder) */}
-            <Route path="account" element={
-              <div className="p-4">
-                <div className="row justify-content-center">
-                  <div className="col-lg-8">
-                    <div className="card shadow-sm border-0">
-                      <div className="card-header bg-info text-white">
-                        <h4 className="mb-0 fw-bold">Admin Account</h4>
-                      </div>
-                      <div className="card-body p-4">
-                        <p className="text-muted mb-4">Admin account settings and profile management.</p>
-                        <div className="alert alert-info">
-                          <i className="bi bi-info-circle me-2"></i>
-                          Account settings coming soon...
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            } />
-          </Route>
 
           {/* Fallback to landing */}
           <Route path="*" element={<Navigate to="/" replace />} />

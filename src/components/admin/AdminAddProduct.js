@@ -7,6 +7,7 @@ function AdminAddProduct() {
     name: '',
     description: '',
     price: '',
+    stock: '',
     category: ''
   });
   const [error, setError] = useState('');
@@ -24,121 +25,173 @@ function AdminAddProduct() {
     setError('');
     setSuccess('');
 
-    // TODO: Replace with real Laravel API call (POST /api/admin/products)
-    if (formData.name && formData.price && formData.category) {
-      console.log('Adding product:', formData);
-      setSuccess('Product added successfully!');
-      
-      // Reset form
-      setFormData({ name: '', description: '', price: '', category: '' });
-    } else {
+    if (!formData.name || !formData.price || !formData.stock || !formData.category) {
       setError('Please fill in all required fields.');
+      return;
+    }
+
+    try {
+      // Use localStorage only (reliable, works everywhere)
+      const stored = localStorage.getItem('products');
+      let products = stored ? JSON.parse(stored) : [];
+      
+      // Generate unique ID
+      const newProduct = {
+        id: Date.now(),
+        name: formData.name,
+        description: formData.description || '',
+        price: parseFloat(formData.price),
+        stock: parseInt(formData.stock),
+        category: [formData.category],
+        images: []
+      };
+      
+      // Add to products array
+      products.push(newProduct);
+      
+      // Save back to localStorage
+      localStorage.setItem('products', JSON.stringify(products));
+      
+      console.log('Product added:', newProduct);
+      setSuccess('Product added successfully!');
+      setFormData({ name: '', description: '', price: '', stock: '', category: '' });
+      
+    } catch (error) {
+      console.error('Error:', error);
+      setError('Failed to add product: ' + error.message);
     }
   };
 
   return (
-    <div className="container-fluid py-4">
+    <div className="container-fluid mt-4">
       <div className="row justify-content-center">
-        <div className="col-lg-8 col-xl-6">
-          <div className="card shadow-sm border-0">
-            <div className="card-header bg-primary text-white">
-              <h4 className="mb-0 fw-bold">Add New Product</h4>
-            </div>
-            <div className="card-body p-4">
+        <div className="col-12 col-lg-8 col-xl-6">
+          <div className="card">
+            <div className="card-body">
+              <h5 className="card-title mb-4">
+                <i className="ri-add-box-line me-2"></i>Add New Product
+              </h5>
+
               {error && (
                 <div className="alert alert-danger alert-dismissible fade show" role="alert">
-                  {error}
+                  <i className="ri-error-warning-line me-2"></i>
+                  <strong>Error:</strong> {error}
                   <button 
                     type="button" 
                     className="btn-close" 
-                    data-bs-dismiss="alert"
+                    data-bs-dismiss="alert" 
                     aria-label="Close"
                   ></button>
                 </div>
               )}
               {success && (
                 <div className="alert alert-success alert-dismissible fade show" role="alert">
-                  {success}
+                  <i className="ri-check-circle-line me-2"></i>
+                  <strong>Success:</strong> {success}
                   <button 
                     type="button" 
                     className="btn-close" 
-                    data-bs-dismiss="alert"
+                    data-bs-dismiss="alert" 
                     aria-label="Close"
                   ></button>
                 </div>
               )}
 
               <form onSubmit={handleSubmit}>
-                <div className="mb-4">
-                  <label className="form-label fw-semibold">Product Name *</label>
-                  <input
-                    type="text"
-                    className="form-control form-control-lg"
+                <div className="mb-3">
+                  <label className="form-label">Product Name</label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    placeholder="e.g., Wireless Headphones"
+                    placeholder="e.g., Yokohama BluEarth-Es ES32"
                     required
                   />
                 </div>
 
-                <div className="mb-4">
-                  <label className="form-label fw-semibold">Description</label>
-                  <textarea
-                    className="form-control"
-                    name="description"
-                    rows="4"
+                <div className="mb-3">
+                  <label className="form-label">Description</label>
+                  <textarea 
+                    className="form-control" 
+                    name="description" 
+                    rows={4}
                     value={formData.description}
                     onChange={handleChange}
                     placeholder="Enter product description..."
                   />
                 </div>
 
-                <div className="row g-4 mb-4">
+                <div className="row g-3 mb-3">
                   <div className="col-md-6">
-                    <label className="form-label fw-semibold">Price * ($)</label>
-                    <input
-                      type="number"
-                      step="0.01"
+                    <label className="form-label">Price (₱)</label>
+                    <div className="input-group">
+                      <span className="input-group-text">₱</span>
+                      <input 
+                        type="number" 
+                        step="0.01" 
+                        min="0"
+                        className="form-control" 
+                        name="price"
+                        value={formData.price}
+                        onChange={handleChange}
+                        placeholder="0.00"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label">Stock</label>
+                    <input 
+                      type="number" 
                       min="0"
-                      className="form-control form-control-lg"
-                      name="price"
-                      value={formData.price}
+                      className="form-control" 
+                      name="stock"
+                      value={formData.stock}
                       onChange={handleChange}
-                      placeholder="0.00"
+                      placeholder="0"
                       required
                     />
                   </div>
-                  <div className="col-md-6">
-                    <label className="form-label fw-semibold">Category *</label>
-                    <select
-                      className="form-select form-select-lg"
-                      name="category"
-                      value={formData.category}
-                      onChange={handleChange}
-                      required
-                    >
-                      <option value="">Select category...</option>
-                      <option value="Electronics">Electronics</option>
-                      <option value="Clothing">Clothing</option>
-                      <option value="Books">Books</option>
-                      <option value="Home">Home & Garden</option>
-                      <option value="Sports">Sports</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
                 </div>
 
-                <div className="d-flex gap-3 justify-content-between">
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary btn-lg px-4"
+                <div className="mb-3">
+                  <label className="form-label">Category</label>
+                  <select 
+                    className="form-select" 
+                    name="category"
+                    value={formData.category}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="">Select category...</option>
+                    <option value="Car Parts">Car Parts</option>
+                    <option value="Tires">Tires</option>
+                    <option value="Spoiler">Spoiler</option>
+                    <option value="Electronics">Electronics</option>
+                    <option value="Clothing">Clothing</option>
+                    <option value="Books">Books</option>
+                    <option value="Home">Home & Garden</option>
+                    <option value="Sports">Sports</option>
+                    <option value="Merchandise">Merchandise</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                <div className="d-flex gap-2 justify-content-between mt-4">
+                  <button 
+                    type="button" 
+                    className="btn btn-outline-secondary"
                     onClick={() => navigate('/admin')}
                   >
-                    Cancel
+                    <i className="ri-arrow-left-line me-2"></i>Cancel
                   </button>
-                  <button type="submit" className="btn btn-primary btn-lg px-4">
-                    Add Product
+                  <button 
+                    type="submit" 
+                    className="btn btn-dark"
+                  >
+                    <i className="ri-add-line me-2"></i>Add Product
                   </button>
                 </div>
               </form>
