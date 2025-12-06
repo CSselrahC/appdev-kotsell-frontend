@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import products from '../../data/products.json';
 
 function ProductDetails({ cart, setCart }) {
   const { id } = useParams();
   const productId = parseInt(id);
   const product = products.find(p => p.id === productId);
-  const navigate = useNavigate();
+  const parsedStock = Number(product.stock);
+  const hasStockNumber = Number.isFinite(parsedStock);
+  const stock = hasStockNumber ? parsedStock : 0;
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [imageError, setImageError] = useState(false);
@@ -17,10 +19,8 @@ function ProductDetails({ cart, setCart }) {
 
   const hasImages = product.images && product.images.length > 0;
 
-  const handleImageError = (event) => {
-    if (!imageError) {
-      setImageError(true);
-    }
+  const handleImageError = () => {
+    if (!imageError) setImageError(true);
   };
 
   const prevImage = () => {
@@ -45,7 +45,9 @@ function ProductDetails({ cart, setCart }) {
   const handleQuantityChange = (e) => {
     const value = e.target.value;
     if (/^\d*$/.test(value)) {
-      setQuantity(value === '' ? 0 : parseInt(value, 10));
+      let parsed = value === '' ? 0 : parseInt(value, 10);
+      if (hasStockNumber) parsed = Math.min(parsed, stock);
+      setQuantity(parsed);
     }
   };
 
@@ -54,7 +56,12 @@ function ProductDetails({ cart, setCart }) {
   };
 
   const incrementQuantity = () => {
-    setQuantity(prev => prev + 1);
+    setQuantity(prev => {
+      if (hasStockNumber) {
+        return prev < stock ? prev + 1 : prev;
+      }
+      return prev + 1;
+    });
   };
 
   const handleAddToCart = () => {
@@ -74,16 +81,6 @@ function ProductDetails({ cart, setCart }) {
         ? `${product.name} has been added to the cart`
         : `${quantity} ${product.name} have been added to the cart`;
       setMessage(msg);
-    }
-  };
-
-  const handleBuyNow = () => {
-    // Use the same add-to-cart logic, then navigate to checkout
-    if (quantity > 0) {
-      // reuse existing add-to-cart behavior
-      handleAddToCart();
-      // after adding, navigate to checkout and pass product + quantity
-      navigate('/', { state: { product, quantity } });
     }
   };
 
@@ -139,6 +136,11 @@ function ProductDetails({ cart, setCart }) {
             <p className="mb-2">{product.description}</p>
             <h6 className="text-muted mb-2">Category: {Array.isArray(product.category) ? product.category.join(', ') : product.category}</h6>
             <p className="mb-3">Price: <strong>₱{product.price.toFixed(2)}</strong></p>
+            {stock > 0 ? (
+              <p className="mb-2" style={{ color: 'green' }}><strong>In Stock: {stock}</strong></p>
+            ) : (
+              <p className="mb-1" style={{ color: 'red' }}>Out of Stock</p>
+            )}
 
             <div className="d-flex flex-column gap-2 align-items-stretch" style={{ marginBottom: '15px' }}>
               <div className="d-flex align-items-center" style={{ gap: '8px', minWidth: 0 }}>
@@ -146,7 +148,7 @@ function ProductDetails({ cart, setCart }) {
                   className="btn btn-outline-secondary"
                   onClick={decrementQuantity}
                   aria-label="Decrease quantity"
-                  disabled={quantity <= 0}
+                  disabled={quantity <= 0 || stock === 0}
                   style={{ width: '40px', height: '40px' }}
                 >-</button>
                 <input
@@ -161,6 +163,7 @@ function ProductDetails({ cart, setCart }) {
                   className="btn btn-outline-secondary"
                   onClick={incrementQuantity}
                   aria-label="Increase quantity"
+                  disabled={stock === 0 || quantity >= stock}
                   style={{ width: '40px', height: '40px' }}
                 >+</button>
               </div>
@@ -168,18 +171,10 @@ function ProductDetails({ cart, setCart }) {
                 <button
                   onClick={handleAddToCart}
                   className={`btn ${quantity > 0 ? 'btn-success' : 'btn-secondary'} flex-grow-4`}
-                  disabled={quantity <= 0}
+                  disabled={quantity <= 0 || stock === 0}
                   style={{ height: '40px' }}
                 >
                   Add to Cart
-                </button>
-
-                <button
-                  onClick={handleBuyNow}
-                  className="btn btn-outline-primary"
-                  style={{ height: '40px' }}
-                >
-                  Buy Product
                 </button>
               </div>
             </div>
@@ -187,8 +182,6 @@ function ProductDetails({ cart, setCart }) {
             {message && <p className="mt-2 text-success">{message}</p>}
           </div>
         </div>
-
-        
       </div>
     </div>
   );
