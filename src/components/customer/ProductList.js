@@ -14,18 +14,29 @@ function ProductList({ addToCart }) {
 
   const handleQuantityChange = (productId, value) => {
     if (/^\d*$/.test(value)) {
-      const numValue = value === '' ? 0 : parseInt(value, 10);
+      const raw = value === '' ? 0 : parseInt(value, 10);
+      const prod = products.find(p => p.id === productId);
+      const stock = prod && typeof prod.stock === 'number' ? prod.stock : 0;
+      const numValue = Math.min(raw, stock);
       setQuantities(prev => ({ ...prev, [productId]: numValue }));
     }
   };
 
   const handleIncrement = (productId) => {
     const currentQty = quantities[productId] || 0;
-    setQuantities(prev => ({ ...prev, [productId]: currentQty + 1 }));
+    const prod = products.find(p => p.id === productId);
+    const stock = prod && typeof prod.stock === 'number' ? prod.stock : 0;
+    if (stock === 0) return;
+    if (currentQty < stock) {
+      setQuantities(prev => ({ ...prev, [productId]: currentQty + 1 }));
+    }
   };
 
   const handleDecrement = (productId) => {
     const currentQty = quantities[productId] || 0;
+    const prod = products.find(p => p.id === productId);
+    const stock = prod && typeof prod.stock === 'number' ? prod.stock : 0;
+    if (stock === 0) return;
     if (currentQty > 0) {
       setQuantities(prev => ({ ...prev, [productId]: currentQty - 1 }));
     }
@@ -33,7 +44,7 @@ function ProductList({ addToCart }) {
 
   const handleAddToCartWithQuantity = (product) => {
     const quantity = quantities[product.id] || 0;
-    if (quantity < 1 || !Number.isInteger(quantity)) return;
+    if (quantity < 1 || !Number.isInteger(quantity) || quantity > (product.stock || 0)) return;
     if (addToCart) addToCart(product, quantity);
     const message = quantity === 1
       ? `${product.name} has been added to cart`
@@ -92,6 +103,9 @@ function ProductList({ addToCart }) {
                     <div className="price-block">
                       <div className="price-accent">₱{product.price.toFixed(2)}</div>
                       <div className="text-muted small">{Array.isArray(product.category) ? product.category.join(', ') : product.category}</div>
+                      <div className={product.stock > 0 ? 'text-success small mt-1' : 'text-danger small mt-1'}>
+                        {product.stock > 0 ? `In Stock: ${product.stock}` : 'Out of Stock'}
+                      </div>
                     </div>
                   </div>
 
@@ -101,7 +115,7 @@ function ProductList({ addToCart }) {
                         className="btn btn-outline-secondary qty-btn"
                         onClick={() => handleDecrement(product.id)}
                         aria-label="Decrease quantity"
-                        disabled={quantity <= 0}
+                        disabled={quantity <= 0 || product.stock === 0}
                       >
                         -
                       </button>
@@ -117,6 +131,7 @@ function ProductList({ addToCart }) {
                         className="btn btn-outline-secondary qty-btn"
                         onClick={() => handleIncrement(product.id)}
                         aria-label="Increase quantity"
+                        disabled={product.stock === 0 || quantity >= (product.stock || 0)}
                       >
                         +
                       </button>
@@ -126,7 +141,7 @@ function ProductList({ addToCart }) {
                       <button
                         onClick={() => handleAddToCartWithQuantity(product)}
                         className="btn btn-icon btn-icon-unified"
-                        disabled={quantity < 1}
+                        disabled={quantity < 1 || product.stock === 0 || quantity > (product.stock || 0)}
                         aria-label="Add to cart"
                         title="Add to cart"
                       >

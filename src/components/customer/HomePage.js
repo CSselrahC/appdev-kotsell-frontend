@@ -60,24 +60,6 @@ function HomePage({ userName }) {
         <div className="col-md">
           <h2 className="fw-bold mb-4">Welcome, {userName || "User"}!</h2>
         </div>
-        <div className="col-auto d-flex justify-content-center justify-content-md-end gap-3 mt-3 mt-md-0">
-          <button
-            className="btn btn-link p-0 text-decoration-none"
-            title="Products"
-            onClick={() => navigate('/products')}
-            style={{ color: '#222' }}
-          >
-            <i className="ri-shopping-cart-line fs-5"></i>
-          </button>
-          <button
-            className="btn btn-link p-0 text-decoration-none"
-            title="User"
-            onClick={() => navigate('/user')}
-            style={{ color: '#222' }}
-          >
-            <i className="ri-user-line fs-5"></i>
-          </button>
-        </div>
       </div>
 
       {/* ROTATING ADVERTISEMENT BANNER */}
@@ -85,20 +67,13 @@ function HomePage({ userName }) {
         {ads.map((text, idx) => (
           <div
             key={idx}
-            className={`ad-item d-flex flex-column flex-md-row align-items-center justify-content-between w-100 ${idx === currentAd ? 'active' : ''}`}
+            className={`ad-item d-flex flex-wrap flex-column flex-md-row align-items-center justify-content-between w-100 ${idx === currentAd ? 'active' : ''}`}
           >
-            <div className="ad-text text-center text-md-start px-3 py-2">
+            <div className="ad-text text-center text-md-start px-3 py-2 flex-fill">
               <h5 className="mb-1 fw-bold">{text}</h5>
             </div>
 
-            <div className="px-3 py-2">
-              <button
-                className="btn-shop-now"
-                onClick={() => navigate('/products')}
-                aria-label="Shop now"
-              >
-                Shop Now!
-              </button>
+            <div className="px-3 py-2 d-flex align-items-center justify-content-center" style={{ minWidth: 0 }}>
             </div>
           </div>
         ))}
