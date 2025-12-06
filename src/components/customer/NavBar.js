@@ -11,7 +11,7 @@ function NavBar() {
   return (
     <Navbar bg="dark" variant="dark" expand="md" fixed="top" className="topbar">
       <Container>
-        <Navbar.Brand as={Link} to="/homepage" className="text-info fw-bold">
+        <Navbar.Brand as={Link} to="/homepage" className="text-light fw-bold">
           KOTSELL
         </Navbar.Brand>
         <Navbar.Toggle aria-controls="main-navbar" />
@@ -20,25 +20,22 @@ function NavBar() {
             <Nav.Link
               as={Link}
               to="/homepage"
-              className={`nav-link-custom me-2 ${isActive('/homepage') ? 'active' : ''}`}
+              className={`nav-link-custom me-4 ${isActive('/homepage') ? 'active' : ''}`}
             >
-              <i className="ri-home-line me-2"></i>
               Home
             </Nav.Link>
             <Nav.Link
               as={Link}
               to="/products"
-              className={`nav-link-custom me-2 ${isActive('/products') ? 'active' : ''}`}
+              className={`nav-link-custom me-4 ${isActive('/products') ? 'active' : ''}`}
             >
-              <i className="ri-shopping-basket-line me-2"></i>
               Marketplace
             </Nav.Link>
             <Nav.Link
               as={Link}
               to="/cart"
-              className={`nav-link-custom me-2 ${isActive('/cart') ? 'active' : ''}`}
+              className={`nav-link-custom me-4 ${isActive('/cart') ? 'active' : ''}`}
             >
-              <i className="ri-shopping-cart-line me-2"></i>
               Cart
             </Nav.Link>
             <Nav.Link
@@ -46,7 +43,6 @@ function NavBar() {
               to="/user"
               className={`nav-link-custom ${isActive('/user') ? 'active' : ''}`}
             >
-              <i className="ri-user-line me-2"></i>
               Account
             </Nav.Link>
           </Nav>

@@ -26,7 +26,7 @@ function CheckoutSummary({
   };
 
   return (
-    <div className="col-md-5">
+    <div className="col-12 col-md-5">
       <div className="card">
         <div className="card-body">
           <h5 className="card-title mb-3">Order Summary</h5>
@@ -39,12 +39,13 @@ function CheckoutSummary({
                   <img
                     src={imageUrl}
                     alt={item.name}
-                    style={{ width: '60px', height: '60px', borderRadius: '8px', objectFit: 'cover', marginRight: '12px' }}
+                    className="rounded me-3"
+                    style={{ width: '60px', height: '60px', objectFit: 'cover' }}
                   />
                 ) : (
                   <div
-                    className="bg-secondary text-white d-flex align-items-center justify-content-center me-3"
-                    style={{ width: '60px', height: '60px', borderRadius: '8px', fontSize: '10px' }}
+                    className="bg-secondary text-white d-flex align-items-center justify-content-center me-3 rounded"
+                    style={{ width: '60px', height: '60px', fontSize: '10px' }}
                   >
                     Product<br />Image
                   </div>

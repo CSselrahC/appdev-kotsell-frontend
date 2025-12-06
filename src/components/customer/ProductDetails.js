@@ -80,142 +80,95 @@ function ProductDetails({ cart, setCart }) {
     <div className="container mt-4">
       <Link to="/products" className="btn btn-secondary mb-3">Back to Product List</Link>
       <div className="card p-3 shadow-sm">
-        <h3>{product.name}</h3>
+        <h3 className="mb-3">{product.name}</h3>
 
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', maxWidth: '400px', margin: 'auto', position: 'relative', marginBottom: '1rem' }}>
+        <div className="row g-3 align-items-start">
+          <div className="col-12 col-md-6">
+            <div className="d-flex justify-content-center align-items-center" style={{ position: 'relative' }}>
+              {hasImages && product.images.length > 1 && (
+                <button onClick={prevImage} aria-label="Previous Image" className="btn btn-link text-primary p-0 me-2 d-none d-md-inline" style={{ fontSize: '1.75rem' }}>&lt;</button>
+              )}
 
-          {/* Show arrows only if product has more than 1 image */}
-          {hasImages && product.images.length > 1 &&
-            <button
-              onClick={prevImage}
-              aria-label="Previous Image"
-              style={{
-                backgroundColor: 'transparent',
-                border: 'none',
-                fontSize: '2rem',
-                cursor: 'pointer',
-                color: '#0d6efd',
-                marginRight: '10px',
-                userSelect: 'none'
-              }}
-            >&lt;</button>
-          }
+              <div className="product-image-box w-100" style={{ minHeight: '180px', backgroundColor: '#f8f9fa', display: 'flex', justifyContent: 'center', alignItems: 'center', borderRadius: '8px' }}>
+                {!hasImages || imageError ? (
+                  <div style={{ fontStyle: 'italic', color: '#888' }}>No images available</div>
+                ) : (
+                  <img
+                    src={product.images[currentImageIndex]}
+                    alt={`${product.name} ${currentImageIndex + 1}`}
+                    onError={handleImageError}
+                    className="img-fluid"
+                    style={{ maxWidth: '100%', maxHeight: '420px', objectFit: 'contain', borderRadius: '8px' }}
+                  />
+                )}
+              </div>
 
-          <div className="product-image-box" style={{ position: 'relative', width: '100%', minHeight: '180px', backgroundColor: '#f8f9fa', display: 'flex', justifyContent: 'center', alignItems: 'center', borderRadius: '8px' }}>
-            {!hasImages || imageError ? (
-              <div style={{ fontStyle: 'italic', color: '#888' }}>No images available</div>
-            ) : (
-              <img
-                src={product.images[currentImageIndex]}
-                alt={`${product.name} ${currentImageIndex + 1}`}
-                onError={handleImageError}
-                style={{ maxWidth: '100%', maxHeight: '180px', objectFit: 'contain', borderRadius: '8px' }}
-              />
+              {hasImages && product.images.length > 1 && (
+                <button onClick={nextImage} aria-label="Next Image" className="btn btn-link text-primary p-0 ms-2 d-none d-md-inline" style={{ fontSize: '1.75rem' }}>&gt;</button>
+              )}
+            </div>
+
+            {/* Dots for all breakpoints */}
+            {hasImages && product.images.length > 0 && (
+              <div className="text-center mt-3">
+                {product.images.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => selectImage(idx)}
+                    className={`btn btn-sm me-1 ${idx === currentImageIndex ? 'btn-primary' : 'btn-outline-secondary'}`}
+                    aria-label={`Select image ${idx + 1}`}
+                    style={{ width: '10px', height: '10px', padding: 0, borderRadius: '50%' }}
+                  />
+                ))}
+              </div>
             )}
           </div>
 
-          {hasImages && product.images.length > 1 &&
-            <button
-              onClick={nextImage}
-              aria-label="Next Image"
-              style={{
-                backgroundColor: 'transparent',
-                border: 'none',
-                fontSize: '2rem',
-                cursor: 'pointer',
-                color: '#0d6efd',
-                marginLeft: '10px',
-                userSelect: 'none'
-              }}
-            >&gt;</button>
-          }
+          <div className="col-12 col-md-6">
+            <p className="mb-2">{product.description}</p>
+            <h6 className="text-muted mb-2">Category: {Array.isArray(product.category) ? product.category.join(', ') : product.category}</h6>
+            <p className="mb-3">Price: <strong>₱{product.price.toFixed(2)}</strong></p>
+
+            <div className="d-flex flex-column flex-sm-row align-items-stretch gap-2" style={{ marginBottom: '15px' }}>
+              <div className="d-flex align-items-center" style={{ gap: '8px', minWidth: 0 }}>
+                <button
+                  className="btn btn-outline-secondary"
+                  onClick={decrementQuantity}
+                  aria-label="Decrease quantity"
+                  disabled={quantity <= 0}
+                  style={{ width: '40px', height: '40px' }}
+                >-</button>
+                <input
+                  type="text"
+                  value={quantity}
+                  onChange={handleQuantityChange}
+                  className="form-control text-center"
+                  style={{ width: '5.5rem', maxWidth: '100%' }}
+                  aria-label="Quantity input"
+                />
+                <button
+                  className="btn btn-outline-secondary"
+                  onClick={incrementQuantity}
+                  aria-label="Increase quantity"
+                  style={{ width: '40px', height: '40px' }}
+                >+</button>
+              </div>
+
+              <button
+                onClick={handleAddToCart}
+                className={`btn ${quantity > 0 ? 'btn-success' : 'btn-secondary'} flex-grow-1`}
+                disabled={quantity <= 0}
+                style={{ height: '40px' }}
+              >
+                Add to Cart
+              </button>
+            </div>
+
+            {message && <p className="mt-2 text-success">{message}</p>}
+          </div>
         </div>
 
-        {/* Dots only if product has images */}
-        {hasImages && product.images.length > 0 && (
-          <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-            {product.images.map((_, idx) => (
-              <span
-                key={idx}
-                onClick={() => selectImage(idx)}
-                style={{
-                  display: 'inline-block',
-                  width: '8px',
-                  height: '8px',
-                  margin: '0 4px',
-                  backgroundColor: idx === currentImageIndex ? '#0d6efd' : '#ccc',
-                  borderRadius: '50%',
-                  cursor: 'pointer'
-                }}
-                aria-label={`Select image ${idx + 1}`}
-              />
-            ))}
-          </div>
-        )}
-
-        <p>{product.description}</p>
-        <h5 style={{ fontSize: '0.8rem', color: '#666' }}>
-          Category: {Array.isArray(product.category) ? product.category.join(', ') : product.category}
-        </h5>
-        <p>Price: ₱{product.price.toFixed(2)}</p>
-
-        <div style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          gap: '10px',
-          maxWidth: '350px',
-          marginBottom: '15px'
-        }}>
-          <div className="d-flex align-items-center" style={{ flexGrow: 1, minWidth: '160px' }}>
-            <button
-              className="btn btn-outline-secondary"
-              onClick={decrementQuantity}
-              aria-label="Decrease quantity"
-              disabled={quantity <= 0}
-              style={{ minWidth: '38px', height: '38px' }}
-            >-</button>
-            <input
-              type="text"
-              value={quantity}
-              onChange={handleQuantityChange}
-              style={{
-                textAlign: 'center',
-                width: '70px',
-                margin: '0 5px',
-                height: '38px',
-                fontSize: '1rem',
-                borderRadius: '4px',
-                border: '1px solid #ced4da'
-              }}
-              aria-label="Quantity input"
-            />
-            <button
-              className="btn btn-outline-secondary"
-              onClick={incrementQuantity}
-              aria-label="Increase quantity"
-              style={{ minWidth: '38px', height: '38px' }}
-            >+</button>
-          </div>
-
-          <button
-            onClick={handleAddToCart}
-            className="btn"
-            style={{
-              backgroundColor: quantity > 0 ? 'green' : 'grey',
-              color: 'white',
-              cursor: quantity > 0 ? 'pointer' : 'not-allowed',
-              flexGrow: 1,
-              minWidth: '120px',
-              height: '38px'
-            }}
-            disabled={quantity <= 0}
-          >
-            Add to Cart
-          </button>
-        </div>
-
-        {message && <p className="mt-3 text-success">{message}</p>}
+        
       </div>
     </div>
   );
