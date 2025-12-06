@@ -6,18 +6,45 @@ function AdminLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = e => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
 
-    // TODO: replace this with real Laravel API call later
-    // For now, accept any non-empty email+password as "admin"
-    if (email.trim() && password.trim()) {
+    // Get admin account from localStorage
+    const adminAccountString = localStorage.getItem('adminAccount');
+    let adminAccount = null;
+
+    if (adminAccountString) {
+      try {
+        adminAccount = JSON.parse(adminAccountString);
+      } catch (error) {
+        console.error('Error parsing admin account:', error);
+      }
+    }
+
+    // If no admin account exists, create default one
+    if (!adminAccount) {
+      adminAccount = {
+        adminId: 'ADMIN001',
+        username: 'admin',
+        email: 'admin@kotsell.com',
+        password: 'password123',
+        name: 'Administrator'
+      };
+      localStorage.setItem('adminAccount', JSON.stringify(adminAccount));
+    }
+
+    // Validate credentials
+    if (email === adminAccount.email && password === adminAccount.password) {
       localStorage.setItem('isAdmin', 'true');
+      setIsLoading(false);
       navigate('/admin');
     } else {
       setError('Invalid email or password');
+      setIsLoading(false);
     }
   };
 
@@ -40,7 +67,13 @@ function AdminLoginPage() {
       <div className="card shadow p-4 w-100" style={{ minWidth: '280px', maxWidth: '400px' }}>
         <h3 className="fw-bold text-center mb-3">Admin Login</h3>
 
-        {error && <div className="alert alert-danger py-2">{error}</div>}
+        {error && (
+          <div className="alert alert-danger py-2 d-flex align-items-center gap-2">
+            <i className="ri-error-warning-line"></i>
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
             <label className="form-label">Email</label>
@@ -49,9 +82,11 @@ function AdminLoginPage() {
               className="form-control"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              placeholder="admin@example.com"
+              placeholder="admin@kotsell.com"
               required
+              disabled={isLoading}
             />
+            <small className="text-muted d-block mt-1">Default: admin@kotsell.com</small>
           </div>
           <div className="mb-4">
             <label className="form-label">Password</label>
@@ -62,10 +97,23 @@ function AdminLoginPage() {
               onChange={e => setPassword(e.target.value)}
               placeholder="password"
               required
+              disabled={isLoading}
             />
+            <small className="text-muted d-block mt-1">Default: password123</small>
           </div>
-          <button type="submit" className="btn btn-dark w-100 fw-semibold">
-            Login
+          <button 
+            type="submit" 
+            className="btn btn-dark w-100 fw-semibold"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                Logging in...
+              </>
+            ) : (
+              'Login'
+            )}
           </button>
         </form>
       </div>

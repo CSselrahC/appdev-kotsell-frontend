@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import productsData from '../../data/products.json';
 
 function AdminAddProduct() {
   const navigate = useNavigate();
+  const [products, setProducts] = useState([]);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -12,6 +14,15 @@ function AdminAddProduct() {
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  useEffect(() => {
+    // Initialize products from products.json
+    const productsWithStock = productsData.map(product => ({
+      ...product,
+      stock: product.stock || 0
+    }));
+    setProducts(productsWithStock);
+  }, []);
 
   const handleChange = (e) => {
     setFormData({
@@ -31,13 +42,9 @@ function AdminAddProduct() {
     }
 
     try {
-      // Use localStorage only (reliable, works everywhere)
-      const stored = localStorage.getItem('products');
-      let products = stored ? JSON.parse(stored) : [];
-      
-      // Generate unique ID
+      // Load current products
       const newProduct = {
-        id: Date.now(),
+        id: Math.max(...products.map(p => p.id), 0) + 1,
         name: formData.name,
         description: formData.description || '',
         price: parseFloat(formData.price),
@@ -47,14 +54,16 @@ function AdminAddProduct() {
       };
       
       // Add to products array
-      products.push(newProduct);
-      
-      // Save back to localStorage
-      localStorage.setItem('products', JSON.stringify(products));
+      const updatedProducts = [...products, newProduct];
+      setProducts(updatedProducts);
+      localStorage.setItem('products', JSON.stringify(updatedProducts));
       
       console.log('Product added:', newProduct);
       setSuccess('Product added successfully!');
       setFormData({ name: '', description: '', price: '', stock: '', category: '' });
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(''), 3000);
       
     } catch (error) {
       console.error('Error:', error);
