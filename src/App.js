@@ -22,7 +22,6 @@ function App() {
 
   // Transaction state
   const [transactions, setTransactions] = useState([]);
-  const [usedCoupons, setUsedCoupons] = useState([]);
 
   // User details state
   const [userDetails, setUserDetails] = useState({
@@ -60,7 +59,7 @@ function App() {
   ) => {
     const orderNumber = transactions.length + 1;
     const price = orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const totalPrice = price - discount + shippingFee;
+    const totalPrice = price + shippingFee;
     const dateTime = new Date().toLocaleString();
 
     const deliveryAddress = contactInfo
@@ -81,10 +80,6 @@ function App() {
         items: orderItems,
       },
     ]);
-
-    if (couponCode !== '---') {
-      setUsedCoupons([...usedCoupons, couponCode]);
-    }
   };
 
   return (
@@ -102,7 +97,7 @@ function App() {
             path="/admin/*"
             element={
               localStorage.getItem('isAdmin') === 'true' ? (
-                <AdminRoutes transactions={transactions} usedCoupons={usedCoupons} />
+                <AdminRoutes transactions={transactions} />
               ) : (
                 <Navigate to="/admin-login" replace />
               )
@@ -118,7 +113,6 @@ function App() {
                 setCart={setCart}
                 transactions={transactions}
                 onTransaction={handleTransaction}
-                usedCoupons={usedCoupons}
                 firstName={userDetails.firstName}
                 setFirstName={(value) => setUserDetails({ ...userDetails, firstName: value })}
                 lastName={userDetails.lastName}

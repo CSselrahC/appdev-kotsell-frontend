@@ -1,33 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import coupons from '../../data/coupons.json';
 import { productAPI } from '../../services/api';
 
 function HomePage({ userName }) {
-  const [currentPromoIndex, setCurrentPromoIndex] = useState(0);
-  const [activePromos, setActivePromos] = useState([]);
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    // Filter current active promos by today's date
-    const now = new Date();
-    const filtered = coupons.filter(coupon => {
-      const start = new Date(coupon.startDate);
-      const end = new Date(coupon.endDate);
-      return start <= now && end >= now;
-    });
-    setActivePromos(filtered);
-  }, []);
-
-  useEffect(() => {
-    // Promo cycling interval set to 4 seconds (4000 ms)
-    if (activePromos.length === 0) return;
-    const interval = setInterval(() => {
-      setCurrentPromoIndex((prev) => (prev + 1) % activePromos.length);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [activePromos]);
 
   useEffect(() => {
     // Fetch products from API and select 4 random unique products
@@ -41,8 +18,6 @@ function HomePage({ userName }) {
         setFeaturedProducts([]);
       });
   }, []);
-
-  const promo = activePromos.length > 0 ? activePromos[currentPromoIndex] : null;
 
   // Rotating advertisement messages
   const ads = [
