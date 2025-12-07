@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { productAPI } from '../../services/api';
+import { productAPI, categoryAPI } from '../../services/api';
 
 function AdminEditProductDetails() {
   const navigate = useNavigate();
@@ -10,7 +10,7 @@ function AdminEditProductDetails() {
     description: '',
     price: '',
     stock: '',
-    category: ''
+    categories: []
   });
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [imageError, setImageError] = useState(false);
@@ -19,12 +19,29 @@ function AdminEditProductDetails() {
   const [loading, setLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [product, setProduct] = useState(null);
+  const [categories, setCategories] = useState([]);
 
   useEffect(() => {
-    // Load product from API
-    const loadProduct = async () => {
+    // Load product and categories from API
+    const loadData = async () => {
       try {
         setLoading(true);
+        
+        // Load categories
+        const fetchedCategories = await categoryAPI.getAll();
+        console.log('Raw categories from API:', fetchedCategories);
+        
+        let processedCategories = [];
+        if (Array.isArray(fetchedCategories)) {
+          processedCategories = fetchedCategories;
+        } else if (fetchedCategories.data && Array.isArray(fetchedCategories.data)) {
+          processedCategories = fetchedCategories.data;
+        }
+        
+        console.log('Processed categories:', processedCategories);
+        setCategories(processedCategories);
+        
+        // Load product
         const foundProduct = await productAPI.getById(parseInt(id));
         setProduct(foundProduct);
         setFormData({
@@ -32,19 +49,19 @@ function AdminEditProductDetails() {
           description: foundProduct.description || '',
           price: foundProduct.price,
           stock: foundProduct.stock || 0,
-          category: foundProduct.category?.[0] || ''
+          categories: foundProduct.category || []
         });
         setError('');
       } catch (err) {
-        console.error('Error loading product:', err);
-        setError('Failed to load product from API');
+        console.error('Error loading data:', err);
+        setError('Failed to load product or categories from API');
       } finally {
         setLoading(false);
       }
     };
     
     if (id) {
-      loadProduct();
+      loadData();
     }
   }, [id]);
 
@@ -87,19 +104,35 @@ function AdminEditProductDetails() {
     setError('');
     setSuccess('');
 
-    if (!formData.name || !formData.price || formData.stock === '' || !formData.category) {
+    if (!formData.name || !formData.price || formData.stock === '' || formData.categories.length === 0) {
       setError('Please fill in all required fields.');
+      return;
+    }
+
+    // Validate price and stock are positive numbers
+    const price = parseFloat(formData.price);
+    const stock = parseInt(formData.stock);
+
+    if (isNaN(price) || price < 0) {
+      setError('Price must be a valid positive number.');
+      return;
+    }
+
+    if (isNaN(stock) || stock < 0) {
+      setError('Stock must be a valid positive number.');
       return;
     }
 
     try {
       const updatedProduct = {
-        name: formData.name,
-        description: formData.description,
-        price: parseFloat(formData.price),
-        stock: parseInt(formData.stock),
-        category: [formData.category]
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        price: price,
+        stock: stock,
+        categories: formData.categories
       };
+
+      console.log('Sending updated product to API:', updatedProduct);
 
       // Call API to update product
       await productAPI.update(parseInt(id), updatedProduct);
@@ -111,7 +144,7 @@ function AdminEditProductDetails() {
       setTimeout(() => navigate('/admin/products/edit'), 2000);
     } catch (error) {
       console.error('Error:', error);
-      setError('Failed to update product: ' + error.message);
+      setError('Failed to update product: ' + (error.message || 'Unknown error occurred'));
     }
   };
 
@@ -316,26 +349,56 @@ function AdminEditProductDetails() {
                     </div>
 
                     <div className="mb-3">
-                      <label className="form-label">Category</label>
-                      <select
-                        className="form-select"
-                        name="category"
-                        value={formData.category}
-                        onChange={handleChange}
-                        required
-                      >
-                        <option value="">Select category...</option>
-                        <option value="Car Parts">Car Parts</option>
-                        <option value="Tires">Tires</option>
-                        <option value="Spoiler">Spoiler</option>
-                        <option value="Electronics">Electronics</option>
-                        <option value="Clothing">Clothing</option>
-                        <option value="Books">Books</option>
-                        <option value="Home">Home & Garden</option>
-                        <option value="Sports">Sports</option>
-                        <option value="Merchandise">Merchandise</option>
-                        <option value="Other">Other</option>
-                      </select>
+                      <label className="form-label">Categories</label>
+                      <div className="border rounded p-3" style={{ maxHeight: '200px', overflowY: 'auto', backgroundColor: '#f8f9fa' }}>
+                        {categories.length === 0 ? (
+                          <small className="text-muted">Loading categories...</small>
+                        ) : (
+                          categories.map((cat) => {
+                            const catId = cat.id || cat.categoryId || cat;
+                            const catName = cat.name || cat.category_name || cat;
+                            const isChecked = formData.categories.includes(catName);
+                            return (
+                              <div key={catId} className="form-check mb-2">
+                                <input
+                                  className="form-check-input"
+                                  type="checkbox"
+                                  id={`category-${catId}`}
+                                  value={catName}
+                                  checked={isChecked}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setFormData({
+                                        ...formData,
+                                        categories: [...formData.categories, catName]
+                                      });
+                                    } else {
+                                      setFormData({
+                                        ...formData,
+                                        categories: formData.categories.filter(c => c !== catName)
+                                      });
+                                    }
+                                  }}
+                                />
+                                <label className="form-check-label" htmlFor={`category-${catId}`}>
+                                  {catName}
+                                </label>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                      {categories.length === 0 && (
+                        <small className="text-muted d-block mt-2">Categories not loaded. Check console for errors.</small>
+                      )}
+                      {formData.categories.length > 0 && (
+                        <small className="text-muted d-block mt-2">
+                          Selected: {formData.categories.join(', ')}
+                        </small>
+                      )}
+                      {formData.categories.length === 0 && (
+                        <small className="text-danger d-block mt-2">Please select at least one category.</small>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -14,12 +14,17 @@ function AdminEditProducts() {
     const loadProducts = async () => {
       try {
         setLoading(true);
-        const fetchedProducts = await productAPI.getAll();
-        setProducts(fetchedProducts);
         setError(null);
+        const fetchedProducts = await productAPI.getAll();
+        console.log('Fetched products:', fetchedProducts);
+        
+        // Ensure we have an array
+        const productsList = Array.isArray(fetchedProducts) ? fetchedProducts : [];
+        setProducts(productsList);
       } catch (err) {
         console.error('Error loading products:', err);
-        setError('Failed to load products from API');
+        setError('Failed to load products from API: ' + (err.message || 'Unknown error'));
+        setProducts([]);
       } finally {
         setLoading(false);
       }
@@ -47,7 +52,31 @@ function AdminEditProducts() {
                 <i className="ri-edit-box-line me-2"></i>Edit Products
               </h5>
 
-              {/* Search Bar */}
+              {/* Error Alert */}
+              {error && (
+                <div className="alert alert-danger alert-dismissible fade show" role="alert">
+                  <i className="ri-error-warning-line me-2"></i>
+                  <strong>Error:</strong> {error}
+                  <button
+                    type="button"
+                    className="btn-close"
+                    data-bs-dismiss="alert"
+                    aria-label="Close"
+                  ></button>
+                </div>
+              )}
+
+              {/* Loading State */}
+              {loading ? (
+                <div className="text-center py-5">
+                  <div className="spinner-border" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                  </div>
+                  <p className="mt-3 text-muted">Loading products...</p>
+                </div>
+              ) : (
+                <>
+                  {/* Search Bar */}
               <div className="mb-4">
                 <div className="input-group">
                   <span className="input-group-text">
@@ -141,6 +170,8 @@ function AdminEditProducts() {
                   <i className="ri-arrow-left-line me-2"></i>Back to Dashboard
                 </button>
               </div>
+                </>
+              )}
             </div>
           </div>
         </div>
