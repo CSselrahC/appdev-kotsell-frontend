@@ -1,40 +1,152 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-function User({
-  firstName,
-  setFirstName,
-  lastName,
-  setLastName,
-  houseStreet,
-  setHouseStreet,
-  barangay,
-  setBarangay,
-  city,
-  setCity,
-  postalCode,
-  setPostalCode,
-  transactions
-}) {
-  const [edit, setEdit] = useState(false);
-  const [formFirstName, setFormFirstName] = useState(firstName);
-  const [formLastName, setFormLastName] = useState(lastName);
-  const [formHouseStreet, setFormHouseStreet] = useState(houseStreet);
-  const [formBarangay, setFormBarangay] = useState(barangay);
-  const [formCity, setFormCity] = useState(city);
-  const [formPostalCode, setFormPostalCode] = useState(postalCode);
-  
-  const navigate = useNavigate();
+const API_BASE_URL = 'http://localhost:8082/api';
 
-  const handleSave = (e) => {
+function User() {
+  const navigate = useNavigate();
+  const [edit, setEdit] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  // Customer data
+  const [firstName, setFirstName] = useState('default');
+  const [lastName, setLastName] = useState('default');
+  const [houseStreet, setHouseStreet] = useState('default');
+  const [barangay, setBarangay] = useState('default');
+  const [city, setCity] = useState('default');
+  const [postalCode, setPostalCode] = useState('default');
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [customersId, setCustomersId] = useState(null);
+
+  // Form state
+  const [formFirstName, setFormFirstName] = useState('');
+  const [formLastName, setFormLastName] = useState('');
+  const [formHouseStreet, setFormHouseStreet] = useState('');
+  const [formBarangay, setFormBarangay] = useState('');
+  const [formCity, setFormCity] = useState('');
+  const [formPostalCode, setFormPostalCode] = useState('');
+
+  // Transactions
+  const [transactions, setTransactions] = useState([]);
+
+  // Fetch customer data and transactions
+  useEffect(() => {
+    fetchCustomerData();
+  }, []);
+
+  const fetchCustomerData = async () => {
+    try {
+      setLoading(true);
+      const customerAccount = localStorage.getItem('customerAccount');
+      
+      if (!customerAccount) {
+        navigate('/customer/login');
+        return;
+      }
+
+      const customer = JSON.parse(customerAccount);
+      setCustomersId(customer.customersId || customer.id);
+      setUsername(customer.username || '');
+      setEmail(customer.email || '');
+
+      // Fetch full customer details
+      const response = await fetch(`${API_BASE_URL}/customers`);
+      if (!response.ok) throw new Error('Failed to fetch customer data');
+      
+      const customers = await response.json();
+      const currentCustomer = Array.isArray(customers) 
+        ? customers.find(c => c.customersId === customer.customersId || c.id === customer.customersId)
+        : customers.data?.find(c => c.customersId === customer.customersId || c.id === customer.customersId);
+
+      if (currentCustomer) {
+        setFirstName(currentCustomer.firstName || 'default');
+        setLastName(currentCustomer.lastName || 'default');
+        setHouseStreet(currentCustomer.street || 'default');
+        setBarangay(currentCustomer.barangay || 'default');
+        setCity(currentCustomer.city || 'default');
+        setPostalCode(currentCustomer.postalCode || 'default');
+      }
+
+      // Fetch transactions for this customer
+      await fetchTransactions(customer.customersId || customer.id);
+      
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setError('Failed to load account data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchTransactions = async (customerId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/orders`);
+      if (!response.ok) throw new Error('Failed to fetch orders');
+      
+      const orders = await response.json();
+      const customerOrders = Array.isArray(orders) 
+        ? orders.filter(order => order.customersId === customerId)
+        : orders.data?.filter(order => order.customersId === customerId) || [];
+
+      // Format transactions for display
+      const formattedTransactions = customerOrders.map(order => ({
+        orderNumber: order.orderNumber,
+        totalPrice: parseFloat(order.totalPrice) || 0,
+        paymentMethod: order.paymentMethod || 'N/A',
+        deliveryAddress: order.deliveryAddress || 'N/A',
+        dateTime: new Date(order.purchaseDate).toLocaleString('en-PH', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      }));
+
+      setTransactions(formattedTransactions);
+    } catch (err) {
+      console.error('Error fetching transactions:', err);
+      setTransactions([]);
+    }
+  };
+
+  const handleSave = async (e) => {
     e.preventDefault();
-    setFirstName(formFirstName.trim() === "" ? "No first name" : formFirstName);
-    setLastName(formLastName.trim() === "" ? "No last name" : formLastName);
-    setHouseStreet(formHouseStreet.trim() === "" ? "No house/street" : formHouseStreet);
-    setBarangay(formBarangay.trim() === "" ? "No barangay" : formBarangay);
-    setCity(formCity.trim() === "" ? "No city" : formCity);
-    setPostalCode(formPostalCode.trim() === "" ? "No postal code" : formPostalCode);
-    setEdit(false);
+    
+    try {
+      const updateData = {
+        firstName: formFirstName.trim() === "" ? "No first name" : formFirstName.trim(),
+        lastName: formLastName.trim() === "" ? "No last name" : formLastName.trim(),
+        street: formHouseStreet.trim() === "" ? "No house/street" : formHouseStreet.trim(),
+        barangay: formBarangay.trim() === "" ? "No barangay" : formBarangay.trim(),
+        city: formCity.trim() === "" ? "No city" : formCity.trim(),
+        postalCode: formPostalCode.trim() === "" ? "No postal code" : formPostalCode.trim(),
+      };
+
+      // Update customer in backend
+      const response = await fetch(`${API_BASE_URL}/customers/${customersId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData)
+      });
+
+      if (!response.ok) throw new Error('Failed to update profile');
+
+      // Update local state
+      setFirstName(updateData.firstName);
+      setLastName(updateData.lastName);
+      setHouseStreet(updateData.street);
+      setBarangay(updateData.barangay);
+      setCity(updateData.city);
+      setPostalCode(updateData.postalCode);
+
+      setEdit(false);
+    } catch (err) {
+      console.error('Update error:', err);
+      alert('Failed to update profile');
+    }
   };
 
   const handleCancel = () => {
@@ -48,22 +160,42 @@ function User({
   };
 
   const handleLogout = () => {
-    // Clear admin status if any
-    localStorage.removeItem('isAdmin');
-    // Navigate to landing page
+    localStorage.removeItem('isCustomer');
+    localStorage.removeItem('customerAccount');
+    localStorage.removeItem('customerId');
     navigate('/');
   };
 
+  if (loading) {
+    return (
+      <div className="container my-5" style={{ maxWidth: '900px' }}>
+        <div className="d-flex justify-content-center">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container my-5" style={{ maxWidth: '900px' }}>
+      {error && (
+        <div className="alert alert-danger">{error}</div>
+      )}
+      
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="fw-bold mb-0">Account</h2>
+        <div>
+          <h2 className="fw-bold mb-0">Account</h2>
+          <p className="text-muted mb-0">Welcome, {username}</p>
+          <small className="text-muted">Email: {email}</small>
+        </div>
         <button 
           className="btn btn-outline-danger px-4" 
           onClick={handleLogout}
         >
           <i className="ri-logout-box-line me-2"></i>
-           Logout
+          Logout
         </button>
       </div>
       
@@ -79,7 +211,6 @@ function User({
                   type="text"
                   value={formFirstName}
                   onChange={e => setFormFirstName(e.target.value)}
-                  required
                 />
               </div>
               <div className="col-md-6">
@@ -89,7 +220,6 @@ function User({
                   type="text"
                   value={formLastName}
                   onChange={e => setFormLastName(e.target.value)}
-                  required
                 />
               </div>
               <div className="col-12">
@@ -99,7 +229,6 @@ function User({
                   type="text"
                   value={formHouseStreet}
                   onChange={e => setFormHouseStreet(e.target.value)}
-                  required
                 />
               </div>
               <div className="col-md-6">
@@ -109,7 +238,6 @@ function User({
                   type="text"
                   value={formBarangay}
                   onChange={e => setFormBarangay(e.target.value)}
-                  required
                 />
               </div>
               <div className="col-md-6">
@@ -119,7 +247,6 @@ function User({
                   type="text"
                   value={formCity}
                   onChange={e => setFormCity(e.target.value)}
-                  required
                 />
               </div>
               <div className="col-md-6">
@@ -129,13 +256,14 @@ function User({
                   type="text"
                   value={formPostalCode}
                   onChange={e => setFormPostalCode(e.target.value)}
-                  required
                 />
               </div>
             </div>
             <div className="d-flex gap-2 mt-4">
               <button type="submit" className="btn btn-success px-4">Save</button>
-              <button type="button" className="btn btn-outline-secondary px-4" onClick={handleCancel}>Cancel</button>
+              <button type="button" className="btn btn-outline-secondary px-4" onClick={handleCancel}>
+                Cancel
+              </button>
             </div>
           </form>
         ) : (
@@ -166,7 +294,18 @@ function User({
                 <input className="form-control" value={postalCode} disabled />
               </div>
             </div>
-            <button className="btn btn-primary px-4 mt-3" onClick={() => setEdit(true)}>
+            <button 
+              className="btn btn-primary px-4 mt-3" 
+              onClick={() => {
+                setFormFirstName(firstName);
+                setFormLastName(lastName);
+                setFormHouseStreet(houseStreet);
+                setFormBarangay(barangay);
+                setFormCity(city);
+                setFormPostalCode(postalCode);
+                setEdit(true);
+              }}
+            >
               Edit Details
             </button>
           </div>
@@ -182,7 +321,6 @@ function User({
             <tr>
               <th scope="col">Order Number</th>
               <th scope="col">Total Price (₱)</th>
-              <th scope="col">Coupon Code</th>
               <th scope="col">Payment Method</th>
               <th scope="col">Delivery Address</th>
               <th scope="col">Date & Time</th>
@@ -191,14 +329,15 @@ function User({
           <tbody>
             {transactions.length === 0 ? (
               <tr>
-                <td colSpan="6" className="text-center">No transactions yet.</td>
+                <td colSpan="5" className="text-center py-4">
+                  No transactions yet.
+                </td>
               </tr>
             ) : (
               transactions.map(tx => (
                 <tr key={tx.orderNumber}>
                   <td>{tx.orderNumber}</td>
                   <td>₱{tx.totalPrice.toFixed(2)}</td>
-                  <td>{tx.couponCode || '---'}</td>
                   <td>{tx.paymentMethod}</td>
                   <td>{tx.deliveryAddress}</td>
                   <td>{tx.dateTime}</td>

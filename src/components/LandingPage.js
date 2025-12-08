@@ -7,7 +7,8 @@ function LandingPage() {
   const navigate = useNavigate();
 
   const handleCustomerClick = () => {
-    navigate('/homepage');
+    // go to customer login/register page
+    navigate('/customer-auth');
   };
 
   const handleAdminClick = () => {
@@ -15,7 +16,10 @@ function LandingPage() {
   };
 
   return (
-    <div className="d-flex justify-content-center align-items-center w-100 bg-light" style={{ minHeight: '100vh' }}>
+    <div
+      className="d-flex justify-content-center align-items-center w-100 bg-light"
+      style={{ minHeight: '100vh' }}
+    >
       <div className="container px-3 px-sm-4">
         <div className="row justify-content-center">
           <div className="col-12 col-sm-10 col-md-8 col-lg-6 col-xl-5">
@@ -23,7 +27,10 @@ function LandingPage() {
               <div className="card-body p-4 p-sm-5">
                 {/* Header / Brand */}
                 <div className="text-center mb-4">
-                  <h1 className="fw-bold mb-2 text-primary" style={{ letterSpacing: '0.14em' }}>
+                  <h1
+                    className="fw-bold mb-2 text-primary"
+                    style={{ letterSpacing: '0.14em' }}
+                  >
                     KOTSELL
                   </h1>
                   <p className="text-muted mb-0 small">
@@ -32,7 +39,14 @@ function LandingPage() {
                 </div>
 
                 {/* Divider */}
-                <div className="mx-auto mb-4" style={{ width: '60px', height: '2px', backgroundColor: '#e5e7eb' }} />
+                <div
+                  className="mx-auto mb-4"
+                  style={{
+                    width: '60px',
+                    height: '2px',
+                    backgroundColor: '#e5e7eb',
+                  }}
+                />
 
                 {/* Welcome Text */}
                 <div className="text-center mb-4">
@@ -73,7 +87,10 @@ function LandingPage() {
 
                 {/* Footer */}
                 <div className="pt-3 border-top text-center">
-                  <small className="text-muted d-block" style={{ fontSize: '0.85rem' }}>
+                  <small
+                    className="text-muted d-block"
+                    style={{ fontSize: '0.85rem' }}
+                  >
                     Powered by React.js
                   </small>
                 </div>

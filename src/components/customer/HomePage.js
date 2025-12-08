@@ -4,7 +4,19 @@ import { productAPI } from '../../services/api';
 
 function HomePage({ userName }) {
   const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [displayName, setDisplayName] = useState(userName);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const customerName = localStorage.getItem('customerName');
+    if (customerName) {
+      setDisplayName(customerName);
+    } else if (userName) {
+      setDisplayName(userName);
+    } else {
+      setDisplayName('User');
+    }
+  }, [userName]);
 
   useEffect(() => {
     // Fetch products from API and select 4 random unique products
@@ -39,7 +51,7 @@ function HomePage({ userName }) {
       {/* Top Row: Welcome Banner & Buttons */}
       <div className="row align-items-center mb-4 g-3 flex-column flex-md-row">
         <div className="col-md">
-          <h2 className="fw-bold mb-4">Welcome, {userName || "User"}!</h2>
+          <h2 className="fw-bold mb-4">Welcome, {displayName}!</h2>
         </div>
       </div>
 
