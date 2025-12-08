@@ -13,7 +13,7 @@ import CustomerRoutes from './components/CustomerRoutes';
 import AdminLoginPage from './components/admin/AdminLoginPage';
 import AdminRoutes from './components/AdminRoutes';
 
-const defaultPaymentMethod = "COD";
+const defaultPaymentMethod = 'COD';
 const shippingFee = 50;
 
 function App() {
@@ -26,26 +26,28 @@ function App() {
 
   // User details state
   const [userDetails, setUserDetails] = useState({
-    firstName: "Juan",
-    lastName: "Dela Cruz",
-    houseStreet: "Blk 2 Lot 4",
-    barangay: "Pulo",
-    city: "Cabuyao",
-    postalCode: "4025"
+    firstName: 'Juan',
+    lastName: 'Dela Cruz',
+    houseStreet: 'Blk 2 Lot 4',
+    barangay: 'Pulo',
+    city: 'Cabuyao',
+    postalCode: '4025',
   });
 
   useEffect(() => {
-    document.title = "KOTSELL";
+    document.title = 'KOTSELL';
   }, []);
 
   const addToCart = (productToAdd, quantityToAdd = 1) => {
-    const existingProduct = cart.find(item => item.id === productToAdd.id);
+    const existingProduct = cart.find((item) => item.id === productToAdd.id);
     if (existingProduct) {
-      setCart(cart.map(item =>
-        item.id === productToAdd.id
-          ? { ...item, quantity: item.quantity + quantityToAdd }
-          : item
-      ));
+      setCart(
+        cart.map((item) =>
+          item.id === productToAdd.id
+            ? { ...item, quantity: item.quantity + quantityToAdd }
+            : item
+        )
+      );
     } else {
       setCart([...cart, { ...productToAdd, quantity: quantityToAdd }]);
     }
@@ -59,7 +61,10 @@ function App() {
     paymentMethod = defaultPaymentMethod
   ) => {
     const orderNumber = transactions.length + 1;
-    const price = orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const price = orderItems.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
     const totalPrice = price - discount + shippingFee;
     const dateTime = new Date().toLocaleString();
 
@@ -102,14 +107,17 @@ function App() {
             path="/admin/*"
             element={
               localStorage.getItem('isAdmin') === 'true' ? (
-                <AdminRoutes transactions={transactions} usedCoupons={usedCoupons} />
+                <AdminRoutes
+                  transactions={transactions}
+                  usedCoupons={usedCoupons}
+                />
               ) : (
                 <Navigate to="/admin-login" replace />
               )
             }
           />
 
-          {/* Customer routes */}
+          {/* Customer routes (includes /customer-auth and shop pages) */}
           <Route
             path="/*"
             element={
@@ -120,17 +128,29 @@ function App() {
                 onTransaction={handleTransaction}
                 usedCoupons={usedCoupons}
                 firstName={userDetails.firstName}
-                setFirstName={(value) => setUserDetails({ ...userDetails, firstName: value })}
+                setFirstName={(value) =>
+                  setUserDetails({ ...userDetails, firstName: value })
+                }
                 lastName={userDetails.lastName}
-                setLastName={(value) => setUserDetails({ ...userDetails, lastName: value })}
+                setLastName={(value) =>
+                  setUserDetails({ ...userDetails, lastName: value })
+                }
                 houseStreet={userDetails.houseStreet}
-                setHouseStreet={(value) => setUserDetails({ ...userDetails, houseStreet: value })}
+                setHouseStreet={(value) =>
+                  setUserDetails({ ...userDetails, houseStreet: value })
+                }
                 barangay={userDetails.barangay}
-                setBarangay={(value) => setUserDetails({ ...userDetails, barangay: value })}
+                setBarangay={(value) =>
+                  setUserDetails({ ...userDetails, barangay: value })
+                }
                 city={userDetails.city}
-                setCity={(value) => setUserDetails({ ...userDetails, city: value })}
+                setCity={(value) =>
+                  setUserDetails({ ...userDetails, city: value })
+                }
                 postalCode={userDetails.postalCode}
-                setPostalCode={(value) => setUserDetails({ ...userDetails, postalCode: value })}
+                setPostalCode={(value) =>
+                  setUserDetails({ ...userDetails, postalCode: value })
+                }
                 addToCart={addToCart}
               />
             }
