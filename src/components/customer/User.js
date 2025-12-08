@@ -8,6 +8,8 @@ function User() {
   const [edit, setEdit] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [updating, setUpdating] = useState(false);
 
   // Customer data
   const [firstName, setFirstName] = useState('default');
@@ -116,6 +118,10 @@ function User() {
     e.preventDefault();
     
     try {
+      setUpdating(true);
+      setError('');
+      setSuccess('');
+
       const updateData = {
         firstName: formFirstName.trim() === "" ? "No first name" : formFirstName.trim(),
         lastName: formLastName.trim() === "" ? "No last name" : formLastName.trim(),
@@ -128,11 +134,26 @@ function User() {
       // Update customer in backend
       const response = await fetch(`${API_BASE_URL}/customers/${customersId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify(updateData)
       });
 
-      if (!response.ok) throw new Error('Failed to update profile');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Update response error:', errorText);
+        throw new Error(`Failed to update profile: ${response.status} ${response.statusText}`);
+      }
+
+      // Update localStorage with new customer data
+      const customerAccount = localStorage.getItem('customerAccount');
+      if (customerAccount) {
+        const customer = JSON.parse(customerAccount);
+        const updatedCustomer = { ...customer, firstName: updateData.firstName, lastName: updateData.lastName };
+        localStorage.setItem('customerAccount', JSON.stringify(updatedCustomer));
+      }
 
       // Update local state
       setFirstName(updateData.firstName);
@@ -142,10 +163,17 @@ function User() {
       setCity(updateData.city);
       setPostalCode(updateData.postalCode);
 
+      setSuccess('Profile updated successfully!');
       setEdit(false);
+      
+      // Auto-clear success message after 3 seconds
+      setTimeout(() => setSuccess(''), 3000);
+      
     } catch (err) {
       console.error('Update error:', err);
-      alert('Failed to update profile');
+      setError(err.message || 'Failed to update profile');
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -157,12 +185,16 @@ function User() {
     setFormCity(city);
     setFormPostalCode(postalCode);
     setEdit(false);
+    setError('');
+    setSuccess('');
   };
 
   const handleLogout = () => {
     localStorage.removeItem('isCustomer');
     localStorage.removeItem('customerAccount');
     localStorage.removeItem('customerId');
+    localStorage.removeItem('customerName');
+    localStorage.removeItem('customerEmail');
     navigate('/');
   };
 
@@ -181,7 +213,27 @@ function User() {
   return (
     <div className="container my-5" style={{ maxWidth: '900px' }}>
       {error && (
-        <div className="alert alert-danger">{error}</div>
+        <div className="alert alert-danger alert-dismissible fade show" role="alert">
+          {error}
+          <button 
+            type="button" 
+            className="btn-close" 
+            onClick={() => setError('')}
+            aria-label="Close"
+          ></button>
+        </div>
+      )}
+      
+      {success && (
+        <div className="alert alert-success alert-dismissible fade show" role="alert">
+          {success}
+          <button 
+            type="button" 
+            className="btn-close" 
+            onClick={() => setSuccess('')}
+            aria-label="Close"
+          ></button>
+        </div>
       )}
       
       <div className="d-flex justify-content-between align-items-center mb-4">
@@ -211,6 +263,8 @@ function User() {
                   type="text"
                   value={formFirstName}
                   onChange={e => setFormFirstName(e.target.value)}
+                  disabled={updating}
+                  required
                 />
               </div>
               <div className="col-md-6">
@@ -220,6 +274,8 @@ function User() {
                   type="text"
                   value={formLastName}
                   onChange={e => setFormLastName(e.target.value)}
+                  disabled={updating}
+                  required
                 />
               </div>
               <div className="col-12">
@@ -229,6 +285,7 @@ function User() {
                   type="text"
                   value={formHouseStreet}
                   onChange={e => setFormHouseStreet(e.target.value)}
+                  disabled={updating}
                 />
               </div>
               <div className="col-md-6">
@@ -238,6 +295,7 @@ function User() {
                   type="text"
                   value={formBarangay}
                   onChange={e => setFormBarangay(e.target.value)}
+                  disabled={updating}
                 />
               </div>
               <div className="col-md-6">
@@ -247,6 +305,7 @@ function User() {
                   type="text"
                   value={formCity}
                   onChange={e => setFormCity(e.target.value)}
+                  disabled={updating}
                 />
               </div>
               <div className="col-md-6">
@@ -256,12 +315,31 @@ function User() {
                   type="text"
                   value={formPostalCode}
                   onChange={e => setFormPostalCode(e.target.value)}
+                  disabled={updating}
                 />
               </div>
             </div>
             <div className="d-flex gap-2 mt-4">
-              <button type="submit" className="btn btn-success px-4">Save</button>
-              <button type="button" className="btn btn-outline-secondary px-4" onClick={handleCancel}>
+              <button 
+                type="submit" 
+                className="btn btn-success px-4" 
+                disabled={updating}
+              >
+                {updating ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    Saving...
+                  </>
+                ) : (
+                  'Save'
+                )}
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-outline-secondary px-4" 
+                onClick={handleCancel}
+                disabled={updating}
+              >
                 Cancel
               </button>
             </div>
