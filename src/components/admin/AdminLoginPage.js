@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const API_BASE_URL = 'http://localhost:8082/api';
-
 function AdminLoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -10,52 +8,51 @@ function AdminLoginPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async e => {
+  const handleSubmit = e => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
-    try {
-      // Fetch all admins from API
-      const response = await fetch(`${API_BASE_URL}/admins`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+    // Simulate a small delay to prevent race conditions
+    setTimeout(() => {
+      // Get admin account from localStorage
+      const adminAccountString = localStorage.getItem('adminAccount');
+      let adminAccount = null;
+
+      if (adminAccountString) {
+        try {
+          adminAccount = JSON.parse(adminAccountString);
+        } catch (error) {
+          console.error('Error parsing admin account:', error);
+          setError('An error occurred. Please try again.');
+          setIsLoading(false);
+          return;
+        }
       }
 
-      const data = await response.json();
-      console.log('Admin data fetched:', data);
-
-      // Handle both array and object responses
-      let admins = Array.isArray(data) ? data : data.data || [];
-      
-      // Find admin by email
-      const adminAccount = admins.find(admin => admin.email === email);
-
+      // If no admin account exists, create default one
       if (!adminAccount) {
-        setError('Invalid email or password');
-        setIsLoading(false);
-        return;
+        adminAccount = {
+          adminId: 'ADMIN001',
+          username: 'admin',
+          email: 'admin@kotsell.com',
+          password: 'password123',
+          name: 'Administrator'
+        };
+        localStorage.setItem('adminAccount', JSON.stringify(adminAccount));
       }
 
-      // Password validation - in a real app, this should be done server-side
-      // For now, we accept non-empty passwords and log them for backend verification
-      if (password && password.length > 0) {
-        // Store admin info in localStorage
+      // Validate credentials
+      if (email === adminAccount.email && password === adminAccount.password) {
         localStorage.setItem('isAdmin', 'true');
-        localStorage.setItem('adminAccount', JSON.stringify(adminAccount));
-        localStorage.setItem('adminId', adminAccount.adminId || adminAccount.id);
         setIsLoading(false);
+        // Use window.location or a small delay before navigate to ensure state is set
         navigate('/admin', { replace: true });
       } else {
         setError('Invalid email or password');
         setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Error during login:', error);
-      setError('Failed to connect to server. Please try again.');
-      setIsLoading(false);
-    }
+    }, 300);
   };
 
   const handleBack = () => {

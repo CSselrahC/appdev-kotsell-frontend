@@ -3,6 +3,13 @@ import products from '../../data/products.json';
 
 function CheckoutSummary({
   cart,
+  couponCode,
+  setCouponCode,
+  couponApplied,
+  handleApplyCoupon,
+  handleRemoveCoupon,
+  couponMessage,
+  appliedDiscount,
   finalTotal,
   onPlaceOrder
 }) {
@@ -52,18 +59,52 @@ function CheckoutSummary({
             );
           })}
 
+          <div className="mb-3">
+            <label className="form-label">Redeem Code</label>
+            <div className="input-group">
+              <input
+                type="text"
+                className="form-control"
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value)}
+                placeholder="Enter code"
+                disabled={couponApplied}
+              />
+              {!couponApplied ? (
+                <button className="btn btn-outline-secondary" onClick={handleApplyCoupon}>
+                  ✓
+                </button>
+              ) : (
+                <button className="btn btn-outline-danger" onClick={handleRemoveCoupon}>
+                  ✗
+                </button>
+              )}
+            </div>
+            {couponMessage && (
+              <div className={`alert ${couponApplied ? 'alert-success' : 'alert-danger'} mt-2 py-1 px-2 small`}>
+                {couponMessage}
+              </div>
+            )}
+          </div>
+
           <div className="border-top pt-3">
             <div className="d-flex justify-content-between mb-2">
               <span>Subtotal:</span>
               <span>₱{subtotal.toFixed(2)}</span>
             </div>
+            {appliedDiscount > 0 && (
+              <div className="d-flex justify-content-between mb-2 text-success">
+                <span>Discount:</span>
+                <span>-₱{appliedDiscount.toFixed(2)}</span>
+              </div>
+            )}
             <div className="d-flex justify-content-between mb-2">
               <span>Shipping Fee:</span>
               <span>₱{shippingFee.toFixed(2)}</span>
             </div>
             <div className="d-flex justify-content-between fw-bold border-top pt-2 mt-2">
               <span>Total:</span>
-              <span>₱{(subtotal + shippingFee).toFixed(2)}</span>
+              <span>₱{(subtotal - appliedDiscount + shippingFee).toFixed(2)}</span>
             </div>
           </div>
 

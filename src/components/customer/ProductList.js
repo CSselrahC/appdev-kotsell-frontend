@@ -1,31 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { productAPI } from '../../services/api';
+import products from '../../data/products.json';
 
 function ProductList({ addToCart }) {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [quantities, setQuantities] = useState({});
+  const [quantities, setQuantities] = useState(() => {
+    const initialQuantities = {};
+    products.forEach(product => initialQuantities[product.id] = 0);
+    return initialQuantities;
+  });
+
   const [confirmationMessage, setConfirmationMessage] = useState(null);
   const [imageErrorMap, setImageErrorMap] = useState({});
-
-  useEffect(() => {
-    setLoading(true);
-    productAPI.getAll()
-      .then(fetchedProducts => {
-        setProducts(fetchedProducts);
-        // Initialize quantities for each product
-        const initialQuantities = {};
-        fetchedProducts.forEach(product => initialQuantities[product.id] = 0);
-        setQuantities(initialQuantities);
-        setLoading(false);
-      })
-      .catch(err => {
-        setError('Failed to load products.');
-        setLoading(false);
-      });
-  }, []);
 
   const handleQuantityChange = (productId, value) => {
     if (/^\d*$/.test(value)) {
@@ -78,9 +63,6 @@ function ProductList({ addToCart }) {
   const handleImageError = (productId) => {
     setImageErrorMap(prev => ({ ...prev, [productId]: true }));
   };
-
-  if (loading) return <div className="container"><p>Loading products...</p></div>;
-  if (error) return <div className="container"><p className="text-danger">{error}</p></div>;
 
   return (
     <div className="container">
@@ -195,4 +177,3 @@ function ProductList({ addToCart }) {
 }
 
 export default ProductList;
-

@@ -1,35 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { productAPI } from '../../services/api';
+import coupons from '../../data/coupons.json';
+import products from '../../data/products.json';
 
 function HomePage({ userName }) {
+  const [currentPromoIndex, setCurrentPromoIndex] = useState(0);
+  const [activePromos, setActivePromos] = useState([]);
   const [featuredProducts, setFeaturedProducts] = useState([]);
-  const [displayName, setDisplayName] = useState(userName);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const customerName = localStorage.getItem('customerName');
-    if (customerName) {
-      setDisplayName(customerName);
-    } else if (userName) {
-      setDisplayName(userName);
-    } else {
-      setDisplayName('User');
-    }
-  }, [userName]);
+    // Filter current active promos by today's date
+    const now = new Date();
+    const filtered = coupons.filter(coupon => {
+      const start = new Date(coupon.startDate);
+      const end = new Date(coupon.endDate);
+      return start <= now && end >= now;
+    });
+    setActivePromos(filtered);
+  }, []);
 
   useEffect(() => {
-    // Fetch products from API and select 4 random unique products
-    productAPI.getAll()
-      .then(fetchedProducts => {
-        const shuffled = [...fetchedProducts].sort(() => 0.5 - Math.random());
-        const selected = shuffled.slice(0, 4);
-        setFeaturedProducts(selected);
-      })
-      .catch(() => {
-        setFeaturedProducts([]);
-      });
+    // Promo cycling interval set to 4 seconds (4000 ms)
+    if (activePromos.length === 0) return;
+    const interval = setInterval(() => {
+      setCurrentPromoIndex((prev) => (prev + 1) % activePromos.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [activePromos]);
+
+  useEffect(() => {
+    // Select 4 random unique products from products.json
+    const shuffled = [...products].sort(() => 0.5 - Math.random());
+    const selected = shuffled.slice(0, 4);
+    setFeaturedProducts(selected);
   }, []);
+
+  const promo = activePromos.length > 0 ? activePromos[currentPromoIndex] : null;
 
   // Rotating advertisement messages
   const ads = [
@@ -51,7 +58,7 @@ function HomePage({ userName }) {
       {/* Top Row: Welcome Banner & Buttons */}
       <div className="row align-items-center mb-4 g-3 flex-column flex-md-row">
         <div className="col-md">
-          <h2 className="fw-bold mb-4">Welcome, {displayName}!</h2>
+          <h2 className="fw-bold mb-4">Welcome, {userName || "User"}!</h2>
         </div>
       </div>
 

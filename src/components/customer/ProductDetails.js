@@ -1,37 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { productAPI } from '../../services/api';
+import products from '../../data/products.json';
 
 function ProductDetails({ cart, setCart }) {
   const { id } = useParams();
-  const [product, setProduct] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const productId = parseInt(id);
+  const product = products.find(p => p.id === productId);
+  const parsedStock = Number(product.stock);
+  const hasStockNumber = Number.isFinite(parsedStock);
+  const stock = hasStockNumber ? parsedStock : 0;
+
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [imageError, setImageError] = useState(false);
   const [quantity, setQuantity] = useState(0);
   const [message, setMessage] = useState('');
 
-  useEffect(() => {
-    setLoading(true);
-    productAPI.getById(id)
-      .then(fetchedProduct => {
-        setProduct(fetchedProduct);
-        setLoading(false);
-      })
-      .catch(() => {
-        setError('Product not found for ID ' + id);
-        setLoading(false);
-      });
-  }, [id]);
-
-  if (loading) return <div className="container"><p>Loading product...</p></div>;
-  if (error) return <div className="container"><p className="text-danger">{error}</p></div>;
   if (!product) return <div>Product not found for ID {id}</div>;
 
-  const parsedStock = Number(product.stock);
-  const hasStockNumber = Number.isFinite(parsedStock);
-  const stock = hasStockNumber ? parsedStock : 0;
   const hasImages = product.images && product.images.length > 0;
 
   const handleImageError = () => {
@@ -203,4 +188,3 @@ function ProductDetails({ cart, setCart }) {
 }
 
 export default ProductDetails;
-

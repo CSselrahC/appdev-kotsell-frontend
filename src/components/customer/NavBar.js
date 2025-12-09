@@ -10,11 +10,7 @@ function NavBar() {
   const isActive = (path) => location.pathname === path;
 
   const handleLogout = () => {
-    localStorage.removeItem('isCustomer');
-    localStorage.removeItem('customerAccount');
-    localStorage.removeItem('customerId');
-    localStorage.removeItem('customerName');
-    localStorage.removeItem('customerEmail');
+    // Clear any user session data if needed
     navigate('/');
   };
 

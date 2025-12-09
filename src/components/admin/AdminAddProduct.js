@@ -1,49 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { productAPI, categoryAPI } from '../../services/api';
+import productsData from '../../data/products.json';
 
 function AdminAddProduct() {
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     price: '',
     stock: '',
-    categories: []
+    category: ''
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Load products and categories from API
-    const loadData = async () => {
-      try {
-        const fetchedProducts = await productAPI.getAll();
-        setProducts(fetchedProducts);
-        
-        const fetchedCategories = await categoryAPI.getAll();
-        console.log('Raw categories from API:', fetchedCategories);
-        
-        // Handle different API response formats
-        let processedCategories = [];
-        if (Array.isArray(fetchedCategories)) {
-          processedCategories = fetchedCategories;
-        } else if (fetchedCategories.data && Array.isArray(fetchedCategories.data)) {
-          processedCategories = fetchedCategories.data;
-        }
-        
-        console.log('Processed categories:', processedCategories);
-        setCategories(processedCategories);
-      } catch (err) {
-        console.error('Error loading data:', err);
-        setError('Failed to load categories. Please refresh the page.');
-      }
-    };
-    
-    loadData();
+    // Initialize products from products.json
+    const productsWithStock = productsData.map(product => ({
+      ...product,
+      stock: product.stock || 0
+    }));
+    setProducts(productsWithStock);
   }, []);
 
   const handleChange = (e) => {
@@ -58,56 +36,38 @@ function AdminAddProduct() {
     setError('');
     setSuccess('');
 
-    if (!formData.name || !formData.price || !formData.stock || formData.categories.length === 0) {
+    if (!formData.name || !formData.price || !formData.stock || !formData.category) {
       setError('Please fill in all required fields.');
       return;
     }
 
-    // Validate price and stock are positive numbers
-    const price = parseFloat(formData.price);
-    const stock = parseInt(formData.stock);
-
-    if (isNaN(price) || price < 0) {
-      setError('Price must be a valid positive number.');
-      return;
-    }
-
-    if (isNaN(stock) || stock < 0) {
-      setError('Stock must be a valid positive number.');
-      return;
-    }
-
     try {
-      setLoading(true);
+      // Load current products
       const newProduct = {
-        name: formData.name.trim(),
-        description: formData.description.trim() || '',
-        price: price,
-        stock: stock,
-        categories: formData.categories
+        id: Math.max(...products.map(p => p.id), 0) + 1,
+        name: formData.name,
+        description: formData.description || '',
+        price: parseFloat(formData.price),
+        stock: parseInt(formData.stock),
+        category: [formData.category],
+        images: []
       };
       
-      console.log('Sending product to API:', newProduct);
-      
-      // Call API to add product
-      const addedProduct = await productAPI.create(newProduct);
-      
-      console.log('Product added successfully:', addedProduct);
-      setSuccess('Product added successfully!');
-      setFormData({ name: '', description: '', price: '', stock: '', categories: [] });
-      
-      // Reload products list to show the newly added product
-      const updatedProducts = await productAPI.getAll();
+      // Add to products array
+      const updatedProducts = [...products, newProduct];
       setProducts(updatedProducts);
+      localStorage.setItem('products', JSON.stringify(updatedProducts));
+      
+      console.log('Product added:', newProduct);
+      setSuccess('Product added successfully!');
+      setFormData({ name: '', description: '', price: '', stock: '', category: '' });
       
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(''), 3000);
       
     } catch (error) {
-      console.error('Error adding product:', error);
-      setError('Failed to add product: ' + (error.message || 'Unknown error occurred'));
-    } finally {
-      setLoading(false);
+      console.error('Error:', error);
+      setError('Failed to add product: ' + error.message);
     }
   };
 
@@ -206,56 +166,26 @@ function AdminAddProduct() {
                 </div>
 
                 <div className="mb-3">
-                  <label className="form-label">Categories</label>
-                  <div className="border rounded p-3" style={{ maxHeight: '200px', overflowY: 'auto', backgroundColor: '#f8f9fa' }}>
-                    {categories.length === 0 ? (
-                      <small className="text-muted">Loading categories...</small>
-                    ) : (
-                      categories.map((cat) => {
-                        const catId = cat.id || cat.categoryId || cat;
-                        const catName = cat.name || cat.category_name || cat;
-                        const isChecked = formData.categories.includes(catName);
-                        return (
-                          <div key={catId} className="form-check mb-2">
-                            <input
-                              className="form-check-input"
-                              type="checkbox"
-                              id={`category-${catId}`}
-                              value={catName}
-                              checked={isChecked}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setFormData({
-                                    ...formData,
-                                    categories: [...formData.categories, catName]
-                                  });
-                                } else {
-                                  setFormData({
-                                    ...formData,
-                                    categories: formData.categories.filter(c => c !== catName)
-                                  });
-                                }
-                              }}
-                            />
-                            <label className="form-check-label" htmlFor={`category-${catId}`}>
-                              {catName}
-                            </label>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                  {categories.length === 0 && (
-                    <small className="text-muted d-block mt-2">Categories not loaded. Check console for errors.</small>
-                  )}
-                  {formData.categories.length > 0 && (
-                    <small className="text-muted d-block mt-2">
-                      Selected: {formData.categories.join(', ')}
-                    </small>
-                  )}
-                  {formData.categories.length === 0 && (
-                    <small className="text-danger d-block mt-2">Please select at least one category.</small>
-                  )}
+                  <label className="form-label">Category</label>
+                  <select 
+                    className="form-select" 
+                    name="category"
+                    value={formData.category}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="">Select category...</option>
+                    <option value="Car Parts">Car Parts</option>
+                    <option value="Tires">Tires</option>
+                    <option value="Spoiler">Spoiler</option>
+                    <option value="Electronics">Electronics</option>
+                    <option value="Clothing">Clothing</option>
+                    <option value="Books">Books</option>
+                    <option value="Home">Home & Garden</option>
+                    <option value="Sports">Sports</option>
+                    <option value="Merchandise">Merchandise</option>
+                    <option value="Other">Other</option>
+                  </select>
                 </div>
 
                 <div className="d-flex gap-2 justify-content-between mt-4">
@@ -263,25 +193,14 @@ function AdminAddProduct() {
                     type="button" 
                     className="btn btn-outline-secondary"
                     onClick={() => navigate('/admin')}
-                    disabled={loading}
                   >
                     <i className="ri-arrow-left-line me-2"></i>Cancel
                   </button>
                   <button 
                     type="submit" 
                     className="btn btn-dark"
-                    disabled={loading}
                   >
-                    {loading ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                        Adding...
-                      </>
-                    ) : (
-                      <>
-                        <i className="ri-add-line me-2"></i>Add Product
-                      </>
-                    )}
+                    <i className="ri-add-line me-2"></i>Add Product
                   </button>
                 </div>
               </form>
