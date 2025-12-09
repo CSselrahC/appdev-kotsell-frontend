@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 function CheckoutSummary({
   cart,
@@ -52,6 +53,17 @@ function CheckoutSummary({
     return `/designs/images/${imageFiles[index]}`;
   };
 
+  const [placed, setPlaced] = useState(false);
+
+  const handlePlace = async () => {
+    try {
+      await onPlaceOrder();
+    } catch (err) {
+      console.error('Place order failed:', err);
+    }
+    setPlaced(true);
+  };
+
   return (
     <div className="col-12 col-md-5">
       <div className="card">
@@ -99,16 +111,25 @@ function CheckoutSummary({
             </div>
           </div>
 
-          <button className="btn btn-dark w-100 mt-3" onClick={onPlaceOrder} disabled={isProcessing}>
-            {isProcessing ? (
-              <>
-                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                Processing...
-              </>
-            ) : (
-              'Place Order'
-            )}
-          </button>
+          {!isProcessing && !placed ? (
+            <button className="btn btn-dark w-100 mt-3" onClick={async () => { await handlePlace(); }}>
+              Place Order
+            </button>
+          ) : null}
+
+          {isProcessing && !placed && (
+            <button className="btn btn-dark w-100 mt-3" disabled>
+              <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+              Processing...
+            </button>
+          )}
+
+          {placed && (
+            <div className="mt-3 text-center w-100">
+              <div className="alert alert-success py-2" role="status">Thank you for purchasing!</div>
+              <Link to="/products" className="btn btn-primary mt-2">Continue Shopping</Link>
+            </div>
+          )}
         </div>
       </div>
     </div>
