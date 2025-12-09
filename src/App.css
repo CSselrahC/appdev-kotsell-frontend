@@ -305,24 +305,3 @@
   .btn-icon-unified { width: 34px; height: 36px; font-size: 1.2rem; }
 }
 
-/* Advertisement CTA fixed to right of ad card */
-.ad-item.position-relative { position: relative; }
-.ad-cta {
-  position: absolute;
-  right: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
-}
-.ad-cta .btn { min-width: 120px; }
-.ad-text { padding-right: 140px; }
-
-@media (max-width: 575.98px) {
-  .ad-text { padding-right: 120px; }
-  .ad-cta { right: 0.5rem; }
-  .ad-cta .btn { min-width: 100px; }
-}
-

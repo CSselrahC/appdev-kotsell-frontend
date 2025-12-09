@@ -197,17 +197,38 @@ export const orderAPI = {
   // Get all orders for a customer
   getByCustomerId: async (customerId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/orders?customer_id=${customerId}`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      console.log('Fetching orders from API');
-      
-      const orders = Array.isArray(data) ? data : data.data || [];
-      return orders;
+      const resp = await fetch(`${API_BASE_URL}/carts?customersId=${customerId}`);
+      if (!resp.ok) throw new Error('Failed to fetch carts');
+      const data = await resp.json();
+
+      const carts = Array.isArray(data) ? data : data.data || [];
+
+      // Normalize: try to include product details. If product not included, fetch it.
+      const normalized = await Promise.all(carts.map(async (c) => {
+        const productId = c.productId || c.product_id || c.product?.productId || c.product?.id;
+        let product = c.product || c.product_data || null;
+        if (!product && productId) {
+          try {
+            product = await productAPI.getById(productId);
+          } catch (e) {
+            product = null;
+          }
+        }
+
+        return {
+          cartId: c.cartId || c.id || c.cart_id,
+          id: productId,
+          name: product?.name || c.name || '',
+          price: parseFloat(c.price) || (product ? product.price : 0),
+          quantity: parseInt(c.quantity) || 0,
+          images: product?.images || [],
+          stock: product?.stock || 0,
+        };
+      }));
+
+      return normalized;
     } catch (error) {
-      console.error('Error fetching orders:', error);
+      console.error('orderAPI.getByCustomerId error:', error);
       throw error;
     }
   },
@@ -257,24 +278,40 @@ export const cartAPI = {
   // Add item to cart
   addItem: async (customerId, productId, quantity) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/carts`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          customer_id: customerId,
-          product_id: productId,
-          quantity: quantity
-        })
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // get product price
+      let price = 0;
+      try {
+        const prod = await productAPI.getById(productId);
+        price = prod.price || 0;
+      } catch (e) {
+        // ignore, fallback price 0
       }
-      const data = await response.json();
-      return data.data || data;
+
+      const body = {
+        customersId: customerId,
+        productId,
+        quantity,
+        price
+      };
+
+      const resp = await fetch(`${API_BASE_URL}/carts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!resp.ok) throw new Error('Failed to add cart item');
+      const data = await resp.json();
+
+      // Return created cart item normalized
+      const created = data.data || data || {};
+      return {
+        cartId: created.cartId || created.id || created.cart_id,
+        id: created.productId || created.product_id,
+        quantity: parseInt(created.quantity) || quantity,
+        price: parseFloat(created.price) || price,
+      };
     } catch (error) {
-      console.error('Error adding to cart:', error);
+      console.error('cartAPI.addItem error:', error);
       throw error;
     }
   },
@@ -282,22 +319,33 @@ export const cartAPI = {
   // Update cart item
   updateItem: async (customerId, productId, quantity) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/carts/${customerId}/${productId}`, {
+      // Find cart entry for this customer and product
+      const resp = await fetch(`${API_BASE_URL}/carts?customersId=${customerId}&productId=${productId}`);
+      if (!resp.ok) throw new Error('Failed to find cart item');
+      const data = await resp.json();
+      const carts = Array.isArray(data) ? data : data.data || [];
+      const entry = carts[0];
+      if (!entry) throw new Error('Cart entry not found');
+
+      const cartId = entry.cartId || entry.id || entry.cart_id;
+      const body = { quantity };
+
+      const updateResp = await fetch(`${API_BASE_URL}/carts/${cartId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          quantity: quantity
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
       });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      return data.data || data;
+      if (!updateResp.ok) throw new Error('Failed to update cart item');
+      const updated = await updateResp.json();
+
+      return {
+        cartId: cartId,
+        id: productId,
+        quantity: parseInt(quantity),
+        price: parseFloat(updated.price) || parseFloat(entry.price) || 0,
+      };
     } catch (error) {
-      console.error('Error updating cart:', error);
+      console.error('cartAPI.updateItem error:', error);
       throw error;
     }
   },
@@ -305,19 +353,20 @@ export const cartAPI = {
   // Remove item from cart
   removeItem: async (customerId, productId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/carts/${customerId}/${productId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      return data.data || data;
+      // Find cart entry
+      const resp = await fetch(`${API_BASE_URL}/carts?customersId=${customerId}&productId=${productId}`);
+      if (!resp.ok) throw new Error('Failed to find cart item');
+      const data = await resp.json();
+      const carts = Array.isArray(data) ? data : data.data || [];
+      const entry = carts[0];
+      if (!entry) return true;
+
+      const cartId = entry.cartId || entry.id || entry.cart_id;
+      const del = await fetch(`${API_BASE_URL}/carts/${cartId}`, { method: 'DELETE' });
+      if (!del.ok) throw new Error('Failed to delete cart item');
+      return true;
     } catch (error) {
-      console.error('Error removing from cart:', error);
+      console.error('cartAPI.removeItem error:', error);
       throw error;
     }
   },
@@ -325,18 +374,20 @@ export const cartAPI = {
   // Clear entire cart
   clearCart: async (customerId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/carts/${customerId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
+      // Attempt to delete all cart entries for the customer
+      const resp = await fetch(`${API_BASE_URL}/carts?customersId=${customerId}`);
+      if (!resp.ok) throw new Error('Failed to fetch carts for clear');
+      const data = await resp.json();
+      const carts = Array.isArray(data) ? data : data.data || [];
+      await Promise.all(carts.map(async (c) => {
+        const cartId = c.cartId || c.id || c.cart_id;
+        if (cartId) {
+          await fetch(`${API_BASE_URL}/carts/${cartId}`, { method: 'DELETE' });
         }
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return await response.json();
+      }));
+      return true;
     } catch (error) {
-      console.error('Error clearing cart:', error);
+      console.error('cartAPI.clearCart error:', error);
       throw error;
     }
   }
