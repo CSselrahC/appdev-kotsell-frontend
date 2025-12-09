@@ -79,6 +79,52 @@ function ProductList({ addToCart }) {
     setImageErrorMap(prev => ({ ...prev, [productId]: true }));
   };
 
+  // Get random image from public/designs/images/ directory
+  const getRandomProductImage = (productId) => {
+    // Array of known image filenames in public/designs/images/
+    const imageFiles = [
+      'HKS-1.jpg',
+      'HKS-2.jpg',
+      'HKS-3.jpg',
+      'HWSkyline-1.webp',
+      'HWSkyline-2.webp',
+      'agv-k6.jpg',
+      'alpinestars-gloves.jpg',
+      'arai-rx7v-helmet.jpg',
+      'brembo-brake.jpg',
+      'Add files via upload',
+      'brembo-ceramic.jpg',
+      'bride-zeta.jpg',
+      'bridgestone-tires.jpg',
+      'chain-brush.jpg',
+      'dainese-jacket.jpg',
+      'diecast-car.jpg',
+      'gopro-mount.jpg',
+      'led-headlight.jpg',
+      'minigt-porsche-1.jpg',
+      'minigt-porsche-2.jpg',
+      'minigt-porsche-3.jpg',
+      'minigt-porsche-4.jpg',
+      'motul-oil.jpg',
+      'nismo.webp',
+      'ohlins-shock.jpg',
+      'oxford-tankbag.jpg',
+      'paddock-stand.jpg',
+      'pirelli-tires.jpg',
+      'racing-keychain.jpg',
+      'revit-pants.jpg',
+      'riding-backpack.jpg',
+      'shoei-helmet.jpg',
+      'tire-gauge.jpg',
+      'yokohama.png',
+      'yoshimura-exhaust.jpg',
+    ];
+
+    // Use product ID to seed consistent "random" selection for same product
+    const index = productId % imageFiles.length;
+    return `/designs/images/${imageFiles[index]}`;
+  };
+
   if (loading) return <div className="container"><p>Loading products...</p></div>;
   if (error) return <div className="container"><p className="text-danger">{error}</p></div>;
 
@@ -87,19 +133,19 @@ function ProductList({ addToCart }) {
       <h1 className="mb-3 text-center">Product List</h1>
       <div className="row g-3">
         {products.map(product => {
-          const hasImage = product.images && product.images.length > 0;
           const imageErrored = imageErrorMap[product.id];
           const quantity = quantities[product.id] || 0;
+          const imageSrc = getRandomProductImage(product.id);
 
           return (
             <div key={product.id} className="col-12 col-sm-6 col-md-4 d-flex">
               <div className="card product-card shadow-sm h-100 w-100">
                 <div className="product-image-container">
-                  {(!hasImage || imageErrored) ? (
+                  {imageErrored ? (
                     <div className="no-image">No images available</div>
                   ) : (
                     <img
-                      src={product.images[0]}
+                      src={imageSrc}
                       alt={product.name}
                       className="product-image img-fluid"
                       onError={() => handleImageError(product.id)}
@@ -110,7 +156,7 @@ function ProductList({ addToCart }) {
                 <div className="card-body d-flex flex-column">
                   <h5 className="product-name mb-2">{product.name}</h5>
 
-                  <p className="product-desc text-muted mb-2" style={{flexGrow: 1}}>
+                  <p className="product-desc text-muted mb-2" style={{ flexGrow: 1 }}>
                     {product.description.length > 120
                       ? product.description.slice(0, 120) + '...'
                       : product.description
@@ -128,7 +174,7 @@ function ProductList({ addToCart }) {
                   </div>
 
                   <div className="controls-row d-flex align-items-center gap-2 flex-nowrap">
-                    <div className="d-flex align-items-center qty-controls" style={{gap: '8px', flexShrink: 0}}>
+                    <div className="d-flex align-items-center qty-controls" style={{ gap: '8px', flexShrink: 0 }}>
                       <button
                         className="btn btn-outline-secondary qty-btn"
                         onClick={() => handleDecrement(product.id)}
@@ -195,4 +241,3 @@ function ProductList({ addToCart }) {
 }
 
 export default ProductList;
-

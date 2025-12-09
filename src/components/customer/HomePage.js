@@ -7,6 +7,51 @@ function HomePage({ userName }) {
   const [displayName, setDisplayName] = useState(userName);
   const navigate = useNavigate();
 
+  // Static image files from public/designs/images/
+  const imageFiles = [
+    'HKS-1.jpg',
+    'HKS-2.jpg',
+    'HKS-3.jpg',
+    'HWSkyline-1.webp',
+    'HWSkyline-2.webp',
+    'agv-k6.jpg',
+    'alpinestars-gloves.jpg',
+    'arai-rx7v-helmet.jpg',
+    'brembo-brake.jpg',
+    'Add files via upload',
+    'brembo-ceramic.jpg',
+    'bride-zeta.jpg',
+    'bridgestone-tires.jpg',
+    'chain-brush.jpg',
+    'dainese-jacket.jpg',
+    'diecast-car.jpg',
+    'gopro-mount.jpg',
+    'led-headlight.jpg',
+    'minigt-porsche-1.jpg',
+    'minigt-porsche-2.jpg',
+    'minigt-porsche-3.jpg',
+    'minigt-porsche-4.jpg',
+    'motul-oil.jpg',
+    'nismo.webp',
+    'ohlins-shock.jpg',
+    'oxford-tankbag.jpg',
+    'paddock-stand.jpg',
+    'pirelli-tires.jpg',
+    'racing-keychain.jpg',
+    'revit-pants.jpg',
+    'riding-backpack.jpg',
+    'shoei-helmet.jpg',
+    'tire-gauge.jpg',
+    'yokohama.png',
+    'yoshimura-exhaust.jpg'
+  ];
+
+  // Get consistent random image based on product ID (same as ProductList)
+  const getProductImageSrc = (productId) => {
+    const index = productId % imageFiles.length;
+    return `/designs/images/${imageFiles[index]}`;
+  };
+
   useEffect(() => {
     const customerName = localStorage.getItem('customerName');
     if (customerName) {
@@ -105,21 +150,28 @@ function HomePage({ userName }) {
                   overflow: 'hidden',
                 }}
               >
-                {item.images && item.images.length > 0 ? (
-                  <img
-                    src={item.images[0]}
-                    alt={item.name}
-                    className="img-fluid"
-                    style={{
-                      maxHeight: '100%',
-                      objectFit: 'contain',
-                    }}
-                  />
-                ) : (
-                  <span className="text-muted fst-italic" style={{ fontSize: '1rem' }}>
-                    No images available
-                  </span>
-                )}
+                <img
+                  src={getProductImageSrc(item.id)}
+                  alt={item.name}
+                  className="img-fluid"
+                  style={{
+                    maxHeight: '100%',
+                    objectFit: 'contain',
+                  }}
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'block';
+                  }}
+                />
+                <span
+                  className="text-muted fst-italic"
+                  style={{
+                    fontSize: '1rem',
+                    display: 'none'
+                  }}
+                >
+                  No images available
+                </span>
               </div>
               <div className="card-body text-start">
                 <h6 className="fw-semibold mb-1 text-truncate">{item.name}</h6>
