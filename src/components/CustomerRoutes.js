@@ -16,7 +16,6 @@ function CustomerRoutes({
   setCart,
   transactions,
   onTransaction,
-  usedCoupons,
   firstName,
   setFirstName,
   lastName,
@@ -59,7 +58,6 @@ function CustomerRoutes({
                 cart={cart}
                 setCart={setCart}
                 onTransaction={onTransaction}
-                usedCoupons={usedCoupons}
                 defaultContactInfo={{
                   firstName,
                   lastName,

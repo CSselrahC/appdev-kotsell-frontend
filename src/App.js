@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
+import { cartAPI } from './services/api';
 
 // Landing page
 import LandingPage from './components/LandingPage';
@@ -22,7 +23,6 @@ function App() {
 
   // Transaction state
   const [transactions, setTransactions] = useState([]);
-  const [usedCoupons, setUsedCoupons] = useState([]);
 
   // User details state
   const [userDetails, setUserDetails] = useState({
@@ -36,20 +36,66 @@ function App() {
 
   useEffect(() => {
     document.title = 'KOTSELL';
+    // Load cart from backend if customer logged in
+    const loadCart = async () => {
+      const customerId = localStorage.getItem('customerId');
+      if (customerId) {
+        try {
+          const remoteCart = await cartAPI.getByCustomerId(customerId);
+          if (remoteCart && Array.isArray(remoteCart)) {
+            setCart(remoteCart.map(item => ({ ...item })));
+          }
+        } catch (e) {
+          console.error('Failed to load remote cart:', e);
+        }
+      }
+    };
+    loadCart();
   }, []);
 
-  const addToCart = (productToAdd, quantityToAdd = 1) => {
-    const existingProduct = cart.find((item) => item.id === productToAdd.id);
-    if (existingProduct) {
-      setCart(
-        cart.map((item) =>
-          item.id === productToAdd.id
-            ? { ...item, quantity: item.quantity + quantityToAdd }
-            : item
-        )
-      );
+  const addToCart = async (productToAdd, quantityToAdd = 1) => {
+    const customerId = localStorage.getItem('customerId');
+    if (customerId) {
+      try {
+        const created = await cartAPI.addItem(customerId, productToAdd.id, quantityToAdd);
+        // Merge into local cart state
+        setCart(prev => {
+          const existing = prev.find(p => p.id === productToAdd.id);
+          if (existing) {
+            return prev.map(p => p.id === productToAdd.id ? { ...p, quantity: p.quantity + quantityToAdd } : p);
+          }
+          // include product details when available
+          return [...prev, { ...productToAdd, id: productToAdd.id, quantity: created.quantity || quantityToAdd }];
+        });
+      } catch (e) {
+        console.error('Failed to add item to remote cart, falling back to local:', e);
+        // fallback to local-only
+        const existingProduct = cart.find((item) => item.id === productToAdd.id);
+        if (existingProduct) {
+          setCart(
+            cart.map((item) =>
+              item.id === productToAdd.id
+                ? { ...item, quantity: item.quantity + quantityToAdd }
+                : item
+            )
+          );
+        } else {
+          setCart([...cart, { ...productToAdd, quantity: quantityToAdd }]);
+        }
+      }
     } else {
-      setCart([...cart, { ...productToAdd, quantity: quantityToAdd }]);
+      const existingProduct = cart.find((item) => item.id === productToAdd.id);
+      if (existingProduct) {
+        setCart(
+          cart.map((item) =>
+            item.id === productToAdd.id
+              ? { ...item, quantity: item.quantity + quantityToAdd }
+              : item
+          )
+        );
+      } else {
+        setCart([...cart, { ...productToAdd, quantity: quantityToAdd }]);
+      }
     }
   };
 
@@ -61,11 +107,8 @@ function App() {
     paymentMethod = defaultPaymentMethod
   ) => {
     const orderNumber = transactions.length + 1;
-    const price = orderItems.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0
-    );
-    const totalPrice = price - discount + shippingFee;
+    const price = orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const totalPrice = price + shippingFee;
     const dateTime = new Date().toLocaleString();
 
     const deliveryAddress = contactInfo
@@ -86,10 +129,6 @@ function App() {
         items: orderItems,
       },
     ]);
-
-    if (couponCode !== '---') {
-      setUsedCoupons([...usedCoupons, couponCode]);
-    }
   };
 
   return (
@@ -107,10 +146,7 @@ function App() {
             path="/admin/*"
             element={
               localStorage.getItem('isAdmin') === 'true' ? (
-                <AdminRoutes
-                  transactions={transactions}
-                  usedCoupons={usedCoupons}
-                />
+                <AdminRoutes transactions={transactions} />
               ) : (
                 <Navigate to="/admin-login" replace />
               )
@@ -126,7 +162,6 @@ function App() {
                 setCart={setCart}
                 transactions={transactions}
                 onTransaction={handleTransaction}
-                usedCoupons={usedCoupons}
                 firstName={userDetails.firstName}
                 setFirstName={(value) =>
                   setUserDetails({ ...userDetails, firstName: value })

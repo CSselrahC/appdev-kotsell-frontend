@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import productsData from '../../data/products.json';
+
+const API_BASE_URL = 'http://localhost:8082/api';
 
 function AdminEditProductDetails() {
   const navigate = useNavigate();
@@ -10,68 +11,111 @@ function AdminEditProductDetails() {
     description: '',
     price: '',
     stock: '',
-    category: ''
+    categoryIds: []
   });
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [imageError, setImageError] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [product, setProduct] = useState(null);
+  const [categories, setCategories] = useState([]);
 
   useEffect(() => {
-    // Load products directly from products.json
-    const loadedProducts = productsData.map(product => ({
-      ...product,
-      stock: product.stock || 0
-    }));
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        setError('');
+
+        console.log('🔄 Loading data for product ID:', id);
+
+        // 1. Fetch ALL categories FIRST
+        console.log('📥 Fetching categories...');
+        const categoriesResponse = await fetch(`${API_BASE_URL}/categories`);
+        if (!categoriesResponse.ok) {
+          throw new Error(`Categories fetch failed: ${categoriesResponse.status}`);
+        }
+        const categoriesData = await categoriesResponse.json();
+        const categoriesList = Array.isArray(categoriesData) ? categoriesData : categoriesData.data || [];
+        console.log('✅ Categories loaded:', categoriesList.length);
+        setCategories(categoriesList);
+
+        // 2. Fetch specific PRODUCT by ID
+        console.log('📥 Fetching product:', `${API_BASE_URL}/products/${id}`);
+        const productResponse = await fetch(`${API_BASE_URL}/products/${id}`);
+        if (!productResponse.ok) {
+          throw new Error(`Product fetch failed: ${productResponse.status}`);
+        }
+        const productData = await productResponse.json();
+        console.log('✅ Product loaded:', productData);
+        setProduct(productData);
+
+        // 3. Fetch THIS PRODUCT'S categories from junction table
+        console.log('🔗 Fetching product categories for product ID:', id);
+        const productCategoriesResponse = await fetch(`${API_BASE_URL}/product_categories?productId=${id}`);
+        
+        let productCategoryIds = [];
+        if (productCategoriesResponse.ok) {
+          const productCategoriesData = await productCategoriesResponse.json();
+          console.log('🔗 Raw product categories response:', productCategoriesData);
+          
+          // Handle different response formats
+          if (Array.isArray(productCategoriesData)) {
+            productCategoryIds = productCategoriesData.map(pc => parseInt(pc.categoryId));
+          } else if (productCategoriesData.data && Array.isArray(productCategoriesData.data)) {
+            productCategoryIds = productCategoriesData.data.map(pc => parseInt(pc.categoryId));
+          }
+        } else {
+          console.warn('⚠️ No product_categories endpoint or empty response');
+        }
+        
+        console.log('✅ Product category IDs loaded:', productCategoryIds);
+
+        // 4. Set form with ALL loaded data
+        setFormData({
+          name: productData.name || '',
+          description: productData.description || '',
+          price: productData.price?.toString() || '',
+          stock: productData.stock?.toString() || '',
+          categoryIds: productCategoryIds
+        });
+
+        console.log('🎉 Data loaded - Categories pre-selected:', productCategoryIds);
+
+      } catch (err) {
+        console.error('💥 Load error:', err);
+        setError(`Failed to load data: ${err.message}`);
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    // Also save to localStorage for any additions
-    localStorage.setItem('products', JSON.stringify(loadedProducts));
-    
-    const foundProduct = loadedProducts.find(p => p.id === parseInt(id));
-    if (foundProduct) {
-      setProduct(foundProduct);
-      setFormData({
-        name: foundProduct.name,
-        description: foundProduct.description || '',
-        price: foundProduct.price,
-        stock: foundProduct.stock || 0,
-        category: foundProduct.category?.[0] || ''
-      });
-      setLoading(false);
-    } else {
-      setError('Product not found.');
-      setLoading(false);
+    if (id) {
+      loadData();
     }
   }, [id]);
 
-  const handleImageError = () => {
-    setImageError(true);
-  };
+  const handleImageError = () => setImageError(true);
 
   const prevImage = () => {
-    setImageError(false);
-    if (product?.images && product.images.length > 0) {
-      setCurrentImageIndex(prevIndex =>
-        prevIndex === 0 ? product.images.length - 1 : prevIndex - 1
-      );
+    if (product?.images?.length > 0) {
+      setCurrentImageIndex(prev => prev === 0 ? product.images.length - 1 : prev - 1);
     }
+    setImageError(false);
   };
 
   const nextImage = () => {
-    setImageError(false);
-    if (product?.images && product.images.length > 0) {
-      setCurrentImageIndex(prevIndex =>
-        prevIndex === product.images.length - 1 ? 0 : prevIndex + 1
-      );
+    if (product?.images?.length > 0) {
+      setCurrentImageIndex(prev => prev === product.images.length - 1 ? 0 : prev + 1);
     }
+    setImageError(false);
   };
 
   const selectImage = (index) => {
-    setImageError(false);
     setCurrentImageIndex(index);
+    setImageError(false);
   };
 
   const handleChange = (e) => {
@@ -81,63 +125,130 @@ function AdminEditProductDetails() {
     });
   };
 
+  const handleCategoryChange = (categoryId, checked) => {
+    const categoryIntId = parseInt(categoryId);
+    let newCategoryIds;
+    
+    if (checked) {
+      newCategoryIds = [...formData.categoryIds, categoryIntId];
+    } else {
+      newCategoryIds = formData.categoryIds.filter(id => id !== categoryIntId);
+    }
+    
+    console.log('Category change:', categoryId, checked, '→ New selection:', newCategoryIds);
+    setFormData({
+      ...formData,
+      categoryIds: newCategoryIds
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
-
-    if (!formData.name || !formData.price || formData.stock === '' || !formData.category) {
-      setError('Please fill in all required fields.');
-      return;
-    }
+    setUpdating(true);
 
     try {
-      const stored = localStorage.getItem('products');
-      let products = stored ? JSON.parse(stored) : productsData;
-
-      const productIndex = products.findIndex(p => p.id === parseInt(id));
-      if (productIndex === -1) {
-        setError('Product not found.');
-        return;
+      // Validation
+      if (!formData.name.trim() || !formData.price || formData.stock === '' || formData.categoryIds.length === 0) {
+        throw new Error('Please fill all required fields and select at least one category.');
       }
 
-      // Update the product
-      products[productIndex] = {
-        ...products[productIndex],
-        name: formData.name,
-        description: formData.description,
-        price: parseFloat(formData.price),
-        stock: parseInt(formData.stock),
-        category: [formData.category]
-      };
+      const price = parseFloat(formData.price);
+      const stock = parseInt(formData.stock);
 
-      localStorage.setItem('products', JSON.stringify(products));
-      console.log('Product updated:', products[productIndex]);
-      setSuccess('Product updated successfully!');
+      if (isNaN(price) || price < 0) throw new Error('Price must be a valid positive number.');
+      if (isNaN(stock) || stock < 0) throw new Error('Stock must be a valid positive number.');
 
-      // Redirect after 2 seconds
+      console.log('💾 Saving product + categories:', { id, ...formData, price, stock });
+
+      // 1. UPDATE PRODUCT details
+      const productResponse = await fetch(`${API_BASE_URL}/products/${id}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          name: formData.name.trim(),
+          description: formData.description.trim(),
+          price,
+          stock
+        })
+      });
+
+      if (!productResponse.ok) {
+        const errorText = await productResponse.text();
+        throw new Error(`Product update failed (${productResponse.status}): ${errorText}`);
+      }
+      console.log('✅ Product updated');
+
+      // 2. UPDATE CATEGORIES (junction table) - Clear then add
+      console.log('🔄 Updating categories...');
+      
+      // Clear existing
+      try {
+        const deleteResponse = await fetch(`${API_BASE_URL}/product_categories?productId=${id}`, {
+          method: 'DELETE',
+          headers: { 'Accept': 'application/json' }
+        });
+        console.log('🗑️ Clear response:', deleteResponse.status);
+      } catch (deleteErr) {
+        console.warn('⚠️ Clear categories failed (might not exist):', deleteErr.message);
+      }
+
+      // Add new ones
+      for (const categoryId of formData.categoryIds) {
+        const postResponse = await fetch(`${API_BASE_URL}/product_categories`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            productId: parseInt(id),
+            categoryId: parseInt(categoryId)
+          })
+        });
+        
+        if (!postResponse.ok) {
+          console.error(`❌ Category ${categoryId} failed:`, postResponse.status);
+        }
+      }
+      console.log('✅ Categories updated');
+
+      setSuccess('Product and categories updated successfully!');
+      // Go back to products list
       setTimeout(() => navigate('/admin/products/edit'), 2000);
+      
     } catch (error) {
-      console.error('Error:', error);
-      setError('Failed to update product: ' + error.message);
+      console.error('💥 Save error:', error);
+      setError(error.message);
+    } finally {
+      setUpdating(false);
     }
   };
 
   const handleDelete = async () => {
     try {
-      const stored = localStorage.getItem('products');
-      let products = stored ? JSON.parse(stored) : productsData;
-
-      products = products.filter(p => p.id !== parseInt(id));
-      localStorage.setItem('products', JSON.stringify(products));
-
+      setUpdating(true);
+      const response = await fetch(`${API_BASE_URL}/products/${id}`, { 
+        method: 'DELETE',
+        headers: { 'Accept': 'application/json' }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Delete failed (${response.status})`);
+      }
+      
       setShowDeleteModal(false);
       setSuccess('Product deleted successfully!');
+      // Go back to products list
       setTimeout(() => navigate('/admin/products/edit'), 1500);
     } catch (error) {
-      console.error('Error:', error);
       setError('Failed to delete product: ' + error.message);
-      setShowDeleteModal(false);
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -145,12 +256,32 @@ function AdminEditProductDetails() {
     return (
       <div className="container-fluid mt-4">
         <div className="row justify-content-center">
-          <div className="col-12 col-lg-8 col-xl-6">
-            <div className="text-center">
-              <div className="spinner-border" role="status">
-                <span className="visually-hidden">Loading...</span>
-              </div>
-              <p className="mt-3 text-muted">Loading product details...</p>
+          <div className="col-12 col-lg-8">
+            <div className="text-center py-5">
+              <div className="spinner-border text-primary mb-3" style={{width: '3rem', height: '3rem'}}></div>
+              <p className="text-muted">Loading product details...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !product && !categories.length) {
+    return (
+      <div className="container-fluid mt-4">
+        <div className="row justify-content-center">
+          <div className="col-12 col-lg-8">
+            <div className="alert alert-danger text-center py-5">
+              <i className="ri-error-warning-line fs-1 mb-3 d-block"></i>
+              <h4>Unable to load product</h4>
+              <p>{error}</p>
+              <button className="btn btn-primary me-2" onClick={() => window.location.reload()}>
+                <i className="ri-refresh-line me-2"></i>Retry
+              </button>
+              <button className="btn btn-outline-secondary" onClick={() => navigate('/admin/products/edit')}>
+                <i className="ri-arrow-left-line me-2"></i>Back to List
+              </button>
             </div>
           </div>
         </div>
@@ -161,141 +292,123 @@ function AdminEditProductDetails() {
   return (
     <div className="container-fluid mt-4">
       <div className="row justify-content-center">
-        <div className="col-12 col-lg-8 col-xl-8">
-          <div className="card">
-            <div className="card-body">
-              <h5 className="card-title mb-4">
-                <i className="ri-edit-box-line me-2"></i>Edit Product Details
-              </h5>
+        <div className="col-12 col-lg-10 col-xl-8">
+          <div className="card shadow-sm">
+            <div className="card-body p-4">
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                  <h5 className="card-title mb-1">
+                    <i className="ri-edit-box-line me-2 text-primary"></i>
+                    Edit Product: <strong>{formData.name || 'Loading...'}</strong>
+                  </h5>
+                  <small className="text-muted">ID: {id} | {formData.categoryIds.length} categories selected</small>
+                </div>
+                <button
+                  className="btn btn-outline-secondary btn-sm"
+                  onClick={() => navigate('/admin/products/edit')}
+                >
+                  <i className="ri-arrow-left-line me-1"></i>Back
+                </button>
+              </div>
 
               {error && (
-                <div className="alert alert-danger alert-dismissible fade show" role="alert">
-                  <i className="ri-error-warning-line me-2"></i>
-                  <strong>Error:</strong> {error}
-                  <button
-                    type="button"
-                    className="btn-close"
-                    data-bs-dismiss="alert"
-                    aria-label="Close"
-                  ></button>
+                <div className="alert alert-danger alert-dismissible fade show mb-4">
+                  <i className="ri-error-warning-line me-2"></i>{error}
+                  <button className="btn-close" onClick={() => setError('')} />
                 </div>
               )}
+
               {success && (
-                <div className="alert alert-success alert-dismissible fade show" role="alert">
-                  <i className="ri-check-circle-line me-2"></i>
-                  <strong>Success:</strong> {success}
-                  <button
-                    type="button"
-                    className="btn-close"
-                    data-bs-dismiss="alert"
-                    aria-label="Close"
-                  ></button>
+                <div className="alert alert-success alert-dismissible fade show mb-4">
+                  <i className="ri-check-circle-line me-2"></i>{success}
+                  <button className="btn-close" onClick={() => setSuccess('')} />
                 </div>
               )}
 
               <form onSubmit={handleSubmit}>
-                <div className="row g-3">
-                  {/* Image Section */}
-                  <div className="col-12 col-md-5">
-                    <label className="form-label text-muted small mb-3">Product Images</label>
-                    <div className="d-flex justify-content-center align-items-center" style={{ position: 'relative', minHeight: '300px' }}>
-                      {product?.images && product.images.length > 1 && (
-                        <button 
-                          type="button"
-                          onClick={prevImage} 
-                          className="btn btn-link text-primary p-0 me-2" 
-                          style={{ fontSize: '1.75rem', position: 'absolute', left: 0, zIndex: 10 }}
-                          aria-label="Previous Image"
-                        >
-                          &lt;
-                        </button>
+                <div className="row g-4">
+                  {/* Preview - unchanged */}
+                  <div className="col-12 col-lg-4">
+                    <label className="form-label fw-semibold mb-3">Preview</label>
+                    <div className="position-relative">
+                      {product?.images?.length > 1 && (
+                        <>
+                          <button 
+                            type="button"
+                            onClick={prevImage} 
+                            className="btn btn-primary btn-sm position-absolute top-50 start-0 translate-middle-y z-3 rounded-end-0"
+                            style={{fontSize: '1rem'}}
+                          >&lt;</button>
+                          <button 
+                            type="button"
+                            onClick={nextImage} 
+                            className="btn btn-primary btn-sm position-absolute top-50 end-0 translate-middle-y z-3 rounded-start-0"
+                            style={{fontSize: '1rem'}}
+                          >&gt;</button>
+                        </>
                       )}
-
-                      <div 
-                        className="product-image-box w-100" 
-                        style={{ 
-                          minHeight: '300px', 
-                          backgroundColor: '#f8f9fa', 
-                          display: 'flex', 
-                          justifyContent: 'center', 
-                          alignItems: 'center', 
-                          borderRadius: '8px',
-                          border: '1px solid #dee2e6'
-                        }}
-                      >
-                        {!product?.images || product.images.length === 0 || imageError ? (
-                          <div style={{ fontStyle: 'italic', color: '#888' }}>No images available</div>
+                      <div className="w-100 bg-light d-flex justify-content-center align-items-center rounded-3 border p-4 text-center" style={{minHeight: '250px'}}>
+                        {!product?.images?.length || imageError ? (
+                          <div className="text-muted">
+                            <i className="ri-image-line fs-2 mb-2 d-block opacity-50"></i>
+                            <small>No images</small>
+                          </div>
                         ) : (
                           <img
                             src={product.images[currentImageIndex]}
-                            alt={`${formData.name} ${currentImageIndex + 1}`}
+                            alt={product.name}
                             onError={handleImageError}
-                            className="img-fluid"
-                            style={{ maxWidth: '100%', maxHeight: '300px', objectFit: 'contain', borderRadius: '8px' }}
+                            className="img-fluid rounded-2"
+                            style={{maxHeight: '220px', objectFit: 'contain'}}
                           />
                         )}
                       </div>
-
-                      {product?.images && product.images.length > 1 && (
-                        <button 
-                          type="button"
-                          onClick={nextImage} 
-                          className="btn btn-link text-primary p-0 ms-2" 
-                          style={{ fontSize: '1.75rem', position: 'absolute', right: 0, zIndex: 10 }}
-                          aria-label="Next Image"
-                        >
-                          &gt;
-                        </button>
+                      {product?.images?.length > 1 && (
+                        <div className="text-center mt-2">
+                          {product.images.map((_, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => selectImage(idx)}
+                              className={`btn btn-xs rounded-circle me-1 ${idx === currentImageIndex ? 'btn-primary' : 'btn-outline-secondary'}`}
+                              style={{width: '10px', height: '10px', padding: 0}}
+                            />
+                          ))}
+                        </div>
                       )}
                     </div>
-
-                    {/* Image Navigation Dots */}
-                    {product?.images && product.images.length > 0 && (
-                      <div className="text-center mt-3">
-                        {product.images.map((_, idx) => (
-                          <button
-                            key={idx}
-                            type="button"
-                            onClick={() => selectImage(idx)}
-                            className={`btn btn-sm me-1 ${idx === currentImageIndex ? 'btn-primary' : 'btn-outline-secondary'}`}
-                            aria-label={`Select image ${idx + 1}`}
-                            style={{ width: '10px', height: '10px', padding: 0, borderRadius: '50%' }}
-                          />
-                        ))}
-                      </div>
-                    )}
                   </div>
 
-                  {/* Form Section */}
-                  <div className="col-12 col-md-7">
-                    <div className="mb-3">
-                      <label className="form-label">Product Name</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleChange}
-                        placeholder="Product name"
-                        required
-                      />
-                    </div>
+                  {/* Form fields */}
+                  <div className="col-12 col-lg-8">
+                    <div className="row g-3">
+                      <div className="col-12">
+                        <label className="form-label fw-semibold">Product Name <span className="text-danger">*</span></label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          name="name"
+                          value={formData.name}
+                          onChange={handleChange}
+                          required
+                          disabled={updating}
+                        />
+                      </div>
 
-                    <div className="mb-3">
-                      <label className="form-label">Description</label>
-                      <textarea
-                        className="form-control"
-                        name="description"
-                        rows={3}
-                        value={formData.description}
-                        onChange={handleChange}
-                        placeholder="Product description"
-                      />
-                    </div>
+                      <div className="col-12">
+                        <label className="form-label fw-semibold">Description</label>
+                        <textarea
+                          className="form-control"
+                          name="description"
+                          rows="3"
+                          value={formData.description}
+                          onChange={handleChange}
+                          disabled={updating}
+                        />
+                      </div>
 
-                    <div className="row g-3 mb-3">
-                      <div className="col-md-6">
-                        <label className="form-label">Price (₱)</label>
+                      <div className="col-lg-6">
+                        <label className="form-label fw-semibold">Price (₱) <span className="text-danger">*</span></label>
                         <div className="input-group">
                           <span className="input-group-text">₱</span>
                           <input
@@ -306,13 +419,14 @@ function AdminEditProductDetails() {
                             name="price"
                             value={formData.price}
                             onChange={handleChange}
-                            placeholder="0.00"
                             required
+                            disabled={updating}
                           />
                         </div>
                       </div>
-                      <div className="col-md-6">
-                        <label className="form-label">Stock</label>
+
+                      <div className="col-lg-6">
+                        <label className="form-label fw-semibold">Stock <span className="text-danger">*</span></label>
                         <input
                           type="number"
                           min="0"
@@ -320,58 +434,90 @@ function AdminEditProductDetails() {
                           name="stock"
                           value={formData.stock}
                           onChange={handleChange}
-                          placeholder="0"
                           required
+                          disabled={updating}
                         />
                       </div>
-                    </div>
 
-                    <div className="mb-3">
-                      <label className="form-label">Category</label>
-                      <select
-                        className="form-select"
-                        name="category"
-                        value={formData.category}
-                        onChange={handleChange}
-                        required
-                      >
-                        <option value="">Select category...</option>
-                        <option value="Car Parts">Car Parts</option>
-                        <option value="Tires">Tires</option>
-                        <option value="Spoiler">Spoiler</option>
-                        <option value="Electronics">Electronics</option>
-                        <option value="Clothing">Clothing</option>
-                        <option value="Books">Books</option>
-                        <option value="Home">Home & Garden</option>
-                        <option value="Sports">Sports</option>
-                        <option value="Merchandise">Merchandise</option>
-                        <option value="Other">Other</option>
-                      </select>
+                      <div className="col-12">
+                        <label className="form-label fw-semibold">Categories <span className="text-danger">*</span></label>
+                        <div className="border rounded-3 p-3 bg-light" style={{maxHeight: '200px', overflowY: 'auto'}}>
+                          {categories.length === 0 ? (
+                            <div className="text-center py-3 text-muted">No categories available</div>
+                          ) : (
+                            categories.map(category => {
+                              const categoryId = category.categoryId || category.id;
+                              const isChecked = formData.categoryIds.includes(parseInt(categoryId));
+                              return (
+                                <div key={categoryId} className="form-check mb-2">
+                                  <input
+                                    className="form-check-input"
+                                    type="checkbox"
+                                    id={`cat-${categoryId}`}
+                                    checked={isChecked}
+                                    onChange={e => handleCategoryChange(categoryId, e.target.checked)}
+                                    disabled={updating}
+                                  />
+                                  <label className="form-check-label fw-medium" htmlFor={`cat-${categoryId}`}>
+                                    {category.name}
+                                  </label>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                        <div className="mt-2">
+                          {formData.categoryIds.length === 0 ? (
+                            <small className="text-danger">
+                              <i className="ri-alert-line me-1"></i>At least one category required
+                            </small>
+                          ) : (
+                            <small className="text-success">
+                              <i className="ri-check-line me-1"></i>
+                              {formData.categoryIds.length} categories selected
+                            </small>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="d-flex gap-2 justify-content-between mt-4 flex-wrap">
+                <hr className="my-4" />
+
+                <div className="d-flex gap-3 justify-content-between flex-wrap">
                   <button
                     type="button"
-                    className="btn btn-outline-secondary"
+                    className="btn btn-outline-secondary px-4"
                     onClick={() => navigate('/admin/products/edit')}
+                    disabled={updating}
                   >
-                    <i className="ri-arrow-left-line me-2"></i>Back
+                    <i className="ri-arrow-left-line me-2"></i>Cancel
                   </button>
                   <div className="d-flex gap-2">
                     <button
                       type="button"
-                      className="btn btn-danger"
+                      className="btn btn-outline-danger px-4"
                       onClick={() => setShowDeleteModal(true)}
+                      disabled={updating}
                     >
                       <i className="ri-delete-bin-line me-2"></i>Delete
                     </button>
                     <button
                       type="submit"
-                      className="btn btn-dark"
+                      className="btn btn-primary px-4"
+                      disabled={updating}
                     >
-                      <i className="ri-save-line me-2"></i>Save Changes
+                      {updating ? (
+                        <>
+                          <span className="spinner-border spinner-border-sm me-2"></span>
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <i className="ri-save-3-line me-2"></i>Save Changes
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -381,61 +527,59 @@ function AdminEditProductDetails() {
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Modal */}
       {showDeleteModal && (
-        <div
-          className="modal d-block"
-          tabIndex="-1"
-          style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
-          onClick={() => setShowDeleteModal(false)}
-        >
-          <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-content">
-              <div className="modal-header bg-danger text-white">
-                <div className="d-flex align-items-center gap-2">
-                  <i className="ri-alert-fill"></i>
-                  <h5 className="modal-title fw-bold">Delete Product</h5>
+        <>
+          <div className="modal-backdrop fade show" style={{zIndex: 1040}}></div>
+          <div className="modal fade show d-block" tabIndex="-1" style={{zIndex: 1050}}>
+            <div className="modal-dialog modal-dialog-centered">
+              <div className="modal-content">
+                <div className="modal-header bg-danger text-white">
+                  <h5 className="modal-title fw-bold">
+                    <i className="ri-alert-fill me-2"></i>Delete Product
+                  </h5>
+                  <button 
+                    type="button" 
+                    className="btn-close btn-close-white" 
+                    onClick={() => setShowDeleteModal(false)}
+                  />
                 </div>
-                <button
-                  type="button"
-                  className="btn-close btn-close-white"
-                  onClick={() => setShowDeleteModal(false)}
-                  aria-label="Close"
-                ></button>
-              </div>
-              <div className="modal-body">
-                <div className="d-flex gap-3 mb-3">
-                  <i className="ri-error-warning-line" style={{ color: '#dc3545', fontSize: '1.5rem' }}></i>
-                  <div>
-                    <p className="fw-bold mb-2">Are you sure you want to delete this product?</p>
-                    <p className="text-muted mb-0">
-                      <strong>{formData.name}</strong>
-                    </p>
-                    <p className="text-muted small">
-                      This action cannot be undone. The product will be permanently removed from the system.
-                    </p>
-                  </div>
+                <div className="modal-body">
+                  <p className="fw-bold mb-2">
+                    Delete <strong>{formData.name}</strong>?
+                  </p>
+                  <p className="text-muted small mb-0">
+                    This cannot be undone.
+                  </p>
                 </div>
-              </div>
-              <div className="modal-footer gap-2">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setShowDeleteModal(false)}
-                >
-                  <i className="ri-close-line me-2"></i>Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-danger"
-                  onClick={handleDelete}
-                >
-                  <i className="ri-delete-bin-line me-2"></i>Yes, Delete
-                </button>
+                <div className="modal-footer gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setShowDeleteModal(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-danger"
+                    onClick={handleDelete}
+                    disabled={updating}
+                  >
+                    {updating ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2"></span>
+                        Deleting...
+                      </>
+                    ) : (
+                      'Yes, Delete'
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

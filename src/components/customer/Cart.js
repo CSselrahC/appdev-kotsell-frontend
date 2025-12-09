@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import { cartAPI } from '../../services/api';
 
 function Cart({ cart, setCart }) {
   const navigate = useNavigate();
@@ -13,32 +14,62 @@ function Cart({ cart, setCart }) {
   const handleQuantityChange = (productId, newQuantity) => {
     // Ensure quantity is at least 1
     if (newQuantity < 1) return;
-
-    setCart(cart.map(item =>
-      item.id === productId
-        ? { ...item, quantity: newQuantity }
-        : item
-    ));
+    const customerId = localStorage.getItem('customerId');
+    if (customerId) {
+      cartAPI.updateItem(customerId, productId, newQuantity)
+        .then(() => {
+          setCart(cart.map(item =>
+            item.id === productId
+              ? { ...item, quantity: newQuantity }
+              : item
+          ));
+        })
+        .catch(err => console.error('Failed to update quantity:', err));
+    } else {
+      setCart(cart.map(item =>
+        item.id === productId
+          ? { ...item, quantity: newQuantity }
+          : item
+      ));
+    }
   };
 
   const handleIncrement = (productId) => {
-    setCart(cart.map(item =>
-      item.id === productId
-        ? { ...item, quantity: item.quantity + 1 }
-        : item
-    ));
+    const customerId = localStorage.getItem('customerId');
+    const item = cart.find(i => i.id === productId);
+    const newQty = (item?.quantity || 0) + 1;
+    if (customerId) {
+      cartAPI.updateItem(customerId, productId, newQty)
+        .then(() => setCart(cart.map(i => i.id === productId ? { ...i, quantity: newQty } : i)))
+        .catch(err => console.error('Failed increment:', err));
+    } else {
+      setCart(cart.map(i => i.id === productId ? { ...i, quantity: newQty } : i));
+    }
   };
 
   const handleDecrement = (productId) => {
-    setCart(cart.map(item =>
-      item.id === productId && item.quantity > 1
-        ? { ...item, quantity: item.quantity - 1 }
-        : item
-    ));
+    const customerId = localStorage.getItem('customerId');
+    const item = cart.find(i => i.id === productId);
+    if (!item) return;
+    const newQty = Math.max(1, item.quantity - 1);
+    if (customerId) {
+      cartAPI.updateItem(customerId, productId, newQty)
+        .then(() => setCart(cart.map(i => i.id === productId ? { ...i, quantity: newQty } : i)))
+        .catch(err => console.error('Failed decrement:', err));
+    } else {
+      setCart(cart.map(i => i.id === productId ? { ...i, quantity: newQty } : i));
+    }
   };
 
   const handleRemoveItem = (productId) => {
-    setCart(cart.filter(item => item.id !== productId));
+    const customerId = localStorage.getItem('customerId');
+    if (customerId) {
+      cartAPI.removeItem(customerId, productId)
+        .then(() => setCart(cart.filter(item => item.id !== productId)))
+        .catch(err => console.error('Failed to remove item:', err));
+    } else {
+      setCart(cart.filter(item => item.id !== productId));
+    }
   };
 
   return (
