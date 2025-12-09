@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import CheckoutContact from './Checkout-contact';
 import CheckoutSummary from './Checkout-summary';
 import CheckoutConfirmation from './Checkout-confirmation';
-import { orderAPI, cartAPI } from '../../services/api';
+import { orderAPI } from '../../services/api';
 
 function Checkout({ cart, setCart, onTransaction, defaultContactInfo }) {
   const [purchased, setPurchased] = useState(false);
   const [boughtList, setBoughtList] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState("COD");
+  const [processing, setProcessing] = useState(false);
 
   const [contactInfo, setContactInfo] = useState({
     firstName: '',
@@ -52,35 +53,33 @@ function Checkout({ cart, setCart, onTransaction, defaultContactInfo }) {
     }
     setContactError('');
 
+    setProcessing(true);
     const customerId = localStorage.getItem('customerId');
-    if (customerId && cart.length > 0) {
-      try {
-        // Create order via API
+    try {
+      if (customerId && cart.length > 0) {
         await orderAPI.create({
-          customer_id: customerId,
+          customersId: customerId,
           items: cart,
-          total_price: finalTotal,
-          payment_method: paymentMethod,
-          delivery_address: `${contactInfo.houseStreet}, ${contactInfo.barangay}, ${contactInfo.city}, ${contactInfo.postalCode}`,
+          total: finalTotal,
+          paymentMethod: paymentMethod,
+          deliveryAddress: `${contactInfo.houseStreet}, ${contactInfo.barangay}, ${contactInfo.city}, ${contactInfo.postalCode}`,
           status: 'pending'
         });
-
-        // Clear cart from database
-        await cartAPI.clearCart(customerId);
-        
-        setBoughtList(cart);
-        setPurchased(true);
-        setCart([]);
-
-        if (onTransaction) {
-          onTransaction(cart, 0, '---', contactInfo, paymentMethod);
-        }
-      } catch (err) {
-        console.error('Error processing order:', err);
-        setContactError('Failed to process order. Please try again.');
+      } else {
+        // Optionally create order for guest users as well
+        await orderAPI.create({
+          customersId: null,
+          items: cart,
+          total: finalTotal,
+          paymentMethod: paymentMethod,
+          deliveryAddress: `${contactInfo.houseStreet}, ${contactInfo.barangay}, ${contactInfo.city}, ${contactInfo.postalCode}`,
+          status: 'pending'
+        });
       }
-    } else {
-      // Fallback for non-logged-in users
+
+      // Clear local cart storage (we ignore DB cart)
+      try { localStorage.removeItem('cart'); } catch (e) {}
+
       setBoughtList(cart);
       setPurchased(true);
       setCart([]);
@@ -88,6 +87,11 @@ function Checkout({ cart, setCart, onTransaction, defaultContactInfo }) {
       if (onTransaction) {
         onTransaction(cart, 0, '---', contactInfo, paymentMethod);
       }
+    } catch (err) {
+      console.error('Error processing order:', err);
+      setContactError('Failed to process order. Please try again.');
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -130,6 +134,7 @@ function Checkout({ cart, setCart, onTransaction, defaultContactInfo }) {
           shippingFee={shippingFee}
           finalTotal={finalTotal}
           onPlaceOrder={handleBuyProduct}
+          isProcessing={processing}
         />
       </div>
     </div>

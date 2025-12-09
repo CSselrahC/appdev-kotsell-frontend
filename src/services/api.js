@@ -8,6 +8,27 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 // Helper function to transform API response to frontend format
 const transformProduct = (product) => {
+  const baseHost = API_BASE_URL.replace(/\/api\/?$/i, '');
+
+  const normalizeImage = (img) => {
+    if (!img) return null;
+    // if string URL
+    if (typeof img === 'string') {
+      return img.startsWith('http') ? img : `${baseHost}${img.startsWith('/') ? '' : '/'}${img}`;
+    }
+    // if object with possible fields
+    const src = img.source || img.url || img.path || img.name || img.filename || img.file;
+    if (!src) return null;
+    return (typeof src === 'string' && src.startsWith('http')) ? src : `${baseHost}${src.startsWith('/') ? '' : '/'}${src}`;
+  };
+
+  let images = [];
+  if (Array.isArray(product.images)) {
+    images = product.images.map(normalizeImage).filter(Boolean);
+  } else if (product.image || product.imageUrl || product.image_src) {
+    images = [normalizeImage(product.image || product.imageUrl || product.image_src)].filter(Boolean);
+  }
+
   return {
     id: product.productId || product.id,
     name: product.name || '',
@@ -15,7 +36,7 @@ const transformProduct = (product) => {
     price: parseFloat(product.price) || 0,
     stock: parseInt(product.stock) || 0,
     category: product.categories || product.category || [],
-    images: product.images || []
+    images
   };
 };
 
@@ -192,41 +213,83 @@ export const categoryAPI = {
   }
 };
 
+// Images API
+export const imageAPI = {
+  // Upload image file
+  upload: async (file, name) => {
+    try {
+      const form = new FormData();
+      // try common field names
+      form.append('source', file);
+      form.append('file', file);
+      form.append('name', name || file.name);
+
+      const resp = await fetch(`${API_BASE_URL}/images`, {
+        method: 'POST',
+        body: form
+      });
+      if (!resp.ok) throw new Error('Failed to upload image');
+      const data = await resp.json();
+      return data.data || data || null;
+    } catch (error) {
+      console.error('imageAPI.upload error:', error);
+      throw error;
+    }
+  },
+
+  // Get image by id
+  getById: async (id) => {
+    try {
+      const resp = await fetch(`${API_BASE_URL}/images/${id}`);
+      if (!resp.ok) throw new Error('Failed to fetch image');
+      const data = await resp.json();
+      return data.data || data || null;
+    } catch (error) {
+      console.error('imageAPI.getById error:', error);
+      throw error;
+    }
+  }
+};
+
+// Product-Image junction API
+export const productImageAPI = {
+  link: async (productId, imageId) => {
+    try {
+      const resp = await fetch(`${API_BASE_URL}/product_images`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: parseInt(productId), imageId: parseInt(imageId) })
+      });
+      if (!resp.ok) throw new Error('Failed to link product image');
+      const data = await resp.json();
+      return data.data || data || null;
+    } catch (error) {
+      console.error('productImageAPI.link error:', error);
+      throw error;
+    }
+  },
+
+  unlinkByImageId: async (imageId) => {
+    try {
+      const resp = await fetch(`${API_BASE_URL}/product_images?imageId=${imageId}`, { method: 'DELETE' });
+      return resp.ok;
+    } catch (error) {
+      console.error('productImageAPI.unlinkByImageId error:', error);
+      throw error;
+    }
+  }
+};
+
 // Orders API
 export const orderAPI = {
   // Get all orders for a customer
   getByCustomerId: async (customerId) => {
     try {
-      const resp = await fetch(`${API_BASE_URL}/carts?customersId=${customerId}`);
-      if (!resp.ok) throw new Error('Failed to fetch carts');
+      const resp = await fetch(`${API_BASE_URL}/orders?customersId=${customerId}`);
+      if (!resp.ok) throw new Error('Failed to fetch orders');
       const data = await resp.json();
-
-      const carts = Array.isArray(data) ? data : data.data || [];
-
-      // Normalize: try to include product details. If product not included, fetch it.
-      const normalized = await Promise.all(carts.map(async (c) => {
-        const productId = c.productId || c.product_id || c.product?.productId || c.product?.id;
-        let product = c.product || c.product_data || null;
-        if (!product && productId) {
-          try {
-            product = await productAPI.getById(productId);
-          } catch (e) {
-            product = null;
-          }
-        }
-
-        return {
-          cartId: c.cartId || c.id || c.cart_id,
-          id: productId,
-          name: product?.name || c.name || '',
-          price: parseFloat(c.price) || (product ? product.price : 0),
-          quantity: parseInt(c.quantity) || 0,
-          images: product?.images || [],
-          stock: product?.stock || 0,
-        };
-      }));
-
-      return normalized;
+      const orders = Array.isArray(data) ? data : data.data || [];
+      return orders;
     } catch (error) {
       console.error('orderAPI.getByCustomerId error:', error);
       throw error;
@@ -236,12 +299,20 @@ export const orderAPI = {
   // Create new order
   create: async (orderData) => {
     try {
+      // Normalize fields expected by backend
+      const payload = {
+        customersId: orderData.customersId || orderData.customer_id || orderData.customerId || orderData.customerId,
+        total: orderData.total || orderData.total_price || orderData.price || 0,
+        status: orderData.status || 'pending',
+        items: orderData.items || []
+      };
+
       const response = await fetch(`${API_BASE_URL}/orders`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(orderData)
+        body: JSON.stringify(payload)
       });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -260,15 +331,36 @@ export const cartAPI = {
   // Get cart for a customer
   getByCustomerId: async (customerId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/carts?customer_id=${customerId}`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      console.log('Fetching cart from API');
-      
+      const resp = await fetch(`${API_BASE_URL}/carts?customersId=${customerId}`);
+      if (!resp.ok) throw new Error('Failed to fetch carts');
+      const data = await resp.json();
+
       const carts = Array.isArray(data) ? data : data.data || [];
-      return carts.length > 0 ? carts[0] : null;
+
+      // Normalize cart entries and enrich with product data where possible
+      const normalized = await Promise.all(carts.map(async (c) => {
+        const productId = c.productId || c.product_id || c.product?.productId || c.product?.id;
+        let product = c.product || null;
+        if (!product && productId) {
+          try {
+            product = await productAPI.getById(productId);
+          } catch (e) {
+            product = null;
+          }
+        }
+
+        return {
+          cartId: c.cartId || c.id || c.cart_id,
+          id: productId,
+          name: product?.name || c.name || '',
+          price: parseFloat(c.price) || (product ? product.price : 0),
+          quantity: parseInt(c.quantity) || 0,
+          images: product?.images || [],
+          stock: product?.stock || 0
+        };
+      }));
+
+      return normalized;
     } catch (error) {
       console.error('Error fetching cart:', error);
       throw error;
@@ -397,5 +489,7 @@ export default {
   productAPI,
   categoryAPI,
   orderAPI,
-  cartAPI
+  cartAPI,
+  imageAPI,
+  productImageAPI
 };

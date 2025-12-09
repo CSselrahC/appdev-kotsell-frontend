@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { cartAPI } from '../../services/api';
+// cart is stored locally in localStorage; no API calls here
 
 function Cart({ cart, setCart }) {
   const navigate = useNavigate();
@@ -14,62 +14,38 @@ function Cart({ cart, setCart }) {
   const handleQuantityChange = (productId, newQuantity) => {
     // Ensure quantity is at least 1
     if (newQuantity < 1) return;
-    const customerId = localStorage.getItem('customerId');
-    if (customerId) {
-      cartAPI.updateItem(customerId, productId, newQuantity)
-        .then(() => {
-          setCart(cart.map(item =>
-            item.id === productId
-              ? { ...item, quantity: newQuantity }
-              : item
-          ));
-        })
-        .catch(err => console.error('Failed to update quantity:', err));
-    } else {
-      setCart(cart.map(item =>
-        item.id === productId
-          ? { ...item, quantity: newQuantity }
-          : item
-      ));
-    }
+    setCart(prev => {
+      const next = prev.map(item => item.id === productId ? { ...item, quantity: newQuantity } : item);
+      try { localStorage.setItem('cart', JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
   };
 
   const handleIncrement = (productId) => {
-    const customerId = localStorage.getItem('customerId');
-    const item = cart.find(i => i.id === productId);
-    const newQty = (item?.quantity || 0) + 1;
-    if (customerId) {
-      cartAPI.updateItem(customerId, productId, newQty)
-        .then(() => setCart(cart.map(i => i.id === productId ? { ...i, quantity: newQty } : i)))
-        .catch(err => console.error('Failed increment:', err));
-    } else {
-      setCart(cart.map(i => i.id === productId ? { ...i, quantity: newQty } : i));
-    }
+    setCart(prev => {
+      const next = prev.map(i => i.id === productId ? { ...i, quantity: (i.quantity || 0) + 1 } : i);
+      try { localStorage.setItem('cart', JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
   };
 
   const handleDecrement = (productId) => {
-    const customerId = localStorage.getItem('customerId');
-    const item = cart.find(i => i.id === productId);
-    if (!item) return;
-    const newQty = Math.max(1, item.quantity - 1);
-    if (customerId) {
-      cartAPI.updateItem(customerId, productId, newQty)
-        .then(() => setCart(cart.map(i => i.id === productId ? { ...i, quantity: newQty } : i)))
-        .catch(err => console.error('Failed decrement:', err));
-    } else {
-      setCart(cart.map(i => i.id === productId ? { ...i, quantity: newQty } : i));
-    }
+    setCart(prev => {
+      const item = prev.find(i => i.id === productId);
+      if (!item) return prev;
+      const newQty = Math.max(1, item.quantity - 1);
+      const next = prev.map(i => i.id === productId ? { ...i, quantity: newQty } : i);
+      try { localStorage.setItem('cart', JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
   };
 
   const handleRemoveItem = (productId) => {
-    const customerId = localStorage.getItem('customerId');
-    if (customerId) {
-      cartAPI.removeItem(customerId, productId)
-        .then(() => setCart(cart.filter(item => item.id !== productId)))
-        .catch(err => console.error('Failed to remove item:', err));
-    } else {
-      setCart(cart.filter(item => item.id !== productId));
-    }
+    setCart(prev => {
+      const next = prev.filter(item => item.id !== productId);
+      try { localStorage.setItem('cart', JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
   };
 
   return (

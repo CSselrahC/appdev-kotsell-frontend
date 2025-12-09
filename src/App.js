@@ -36,67 +36,31 @@ function App() {
 
   useEffect(() => {
     document.title = 'KOTSELL';
-    // Load cart from backend if customer logged in
-    const loadCart = async () => {
-      const customerId = localStorage.getItem('customerId');
-      if (customerId) {
-        try {
-          const remoteCart = await cartAPI.getByCustomerId(customerId);
-          if (remoteCart && Array.isArray(remoteCart)) {
-            setCart(remoteCart.map(item => ({ ...item })));
-          }
-        } catch (e) {
-          console.error('Failed to load remote cart:', e);
-        }
+    // Load cart from localStorage
+    const stored = localStorage.getItem('cart');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setCart(Array.isArray(parsed) ? parsed : []);
+      } catch (e) {
+        setCart([]);
       }
-    };
-    loadCart();
+    }
   }, []);
 
   const addToCart = async (productToAdd, quantityToAdd = 1) => {
-    const customerId = localStorage.getItem('customerId');
-    if (customerId) {
-      try {
-        const created = await cartAPI.addItem(customerId, productToAdd.id, quantityToAdd);
-        // Merge into local cart state
-        setCart(prev => {
-          const existing = prev.find(p => p.id === productToAdd.id);
-          if (existing) {
-            return prev.map(p => p.id === productToAdd.id ? { ...p, quantity: p.quantity + quantityToAdd } : p);
-          }
-          // include product details when available
-          return [...prev, { ...productToAdd, id: productToAdd.id, quantity: created.quantity || quantityToAdd }];
-        });
-      } catch (e) {
-        console.error('Failed to add item to remote cart, falling back to local:', e);
-        // fallback to local-only
-        const existingProduct = cart.find((item) => item.id === productToAdd.id);
-        if (existingProduct) {
-          setCart(
-            cart.map((item) =>
-              item.id === productToAdd.id
-                ? { ...item, quantity: item.quantity + quantityToAdd }
-                : item
-            )
-          );
-        } else {
-          setCart([...cart, { ...productToAdd, quantity: quantityToAdd }]);
-        }
-      }
-    } else {
-      const existingProduct = cart.find((item) => item.id === productToAdd.id);
-      if (existingProduct) {
-        setCart(
-          cart.map((item) =>
-            item.id === productToAdd.id
-              ? { ...item, quantity: item.quantity + quantityToAdd }
-              : item
-          )
-        );
+    // Keep cart local only (localStorage). Merge quantities when product exists.
+    setCart(prev => {
+      const existing = prev.find(i => i.id === productToAdd.id);
+      let next;
+      if (existing) {
+        next = prev.map(i => i.id === productToAdd.id ? { ...i, quantity: i.quantity + quantityToAdd } : i);
       } else {
-        setCart([...cart, { ...productToAdd, quantity: quantityToAdd }]);
+        next = [...prev, { id: productToAdd.id, name: productToAdd.name, price: productToAdd.price, quantity: quantityToAdd, images: productToAdd.images || [] }];
       }
-    }
+      try { localStorage.setItem('cart', JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
   };
 
   const handleTransaction = (

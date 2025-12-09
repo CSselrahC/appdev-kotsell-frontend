@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { productAPI, categoryAPI } from '../../services/api';
+import { productAPI, categoryAPI, imageAPI, productImageAPI } from '../../services/api';
 
 function AdminAddProduct() {
   const navigate = useNavigate();
@@ -13,6 +13,7 @@ function AdminAddProduct() {
     stock: '',
     categories: []
   });
+  const [selectedFiles, setSelectedFiles] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -91,10 +92,27 @@ function AdminAddProduct() {
       
       // Call API to add product
       const addedProduct = await productAPI.create(newProduct);
+
+      // If files selected, upload and link them
+      if (selectedFiles && selectedFiles.length > 0 && addedProduct && (addedProduct.id || addedProduct.productId)) {
+        const productId = addedProduct.id || addedProduct.productId;
+        for (const file of selectedFiles) {
+          try {
+            const uploaded = await imageAPI.upload(file, file.name);
+            const imageId = uploaded.imageId || uploaded.id || uploaded.image_id;
+            if (imageId) {
+              await productImageAPI.link(productId, imageId);
+            }
+          } catch (uploadErr) {
+            console.error('Failed to upload/link image:', uploadErr);
+          }
+        }
+      }
       
       console.log('Product added successfully:', addedProduct);
       setSuccess('Product added successfully!');
       setFormData({ name: '', description: '', price: '', stock: '', categories: [] });
+      setSelectedFiles([]);
       
       // Reload products list to show the newly added product
       const updatedProducts = await productAPI.getAll();
@@ -255,6 +273,24 @@ function AdminAddProduct() {
                   )}
                   {formData.categories.length === 0 && (
                     <small className="text-danger d-block mt-2">Please select at least one category.</small>
+                  )}
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">Product Images</label>
+                  <input
+                    type="file"
+                    className="form-control"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => setSelectedFiles(Array.from(e.target.files))}
+                  />
+                  {selectedFiles.length > 0 && (
+                    <div className="mt-2 d-flex gap-2 flex-wrap">
+                      {selectedFiles.map((f, idx) => (
+                        <div key={idx} className="small text-muted border rounded p-2">{f.name}</div>
+                      ))}
+                    </div>
                   )}
                 </div>
 
