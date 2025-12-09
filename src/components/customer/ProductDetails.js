@@ -12,6 +12,56 @@ function ProductDetails({ cart, setCart }) {
   const [quantity, setQuantity] = useState(0);
   const [message, setMessage] = useState('');
 
+  // Static image files from public/designs/images/
+  const imageFiles = [
+    'HKS-1.jpg',
+    'HKS-2.jpg',
+    'HKS-3.jpg',
+    'HWSkyline-1.webp',
+    'HWSkyline-2.webp',
+    'agv-k6.jpg',
+    'alpinestars-gloves.jpg',
+    'arai-rx7v-helmet.jpg',
+    'brembo-brake.jpg',
+    'Add files via upload',
+    'brembo-ceramic.jpg',
+    'bride-zeta.jpg',
+    'bridgestone-tires.jpg',
+    'chain-brush.jpg',
+    'dainese-jacket.jpg',
+    'diecast-car.jpg',
+    'gopro-mount.jpg',
+    'led-headlight.jpg',
+    'minigt-porsche-1.jpg',
+    'minigt-porsche-2.jpg',
+    'minigt-porsche-3.jpg',
+    'minigt-porsche-4.jpg',
+    'motul-oil.jpg',
+    'nismo.webp',
+    'ohlins-shock.jpg',
+    'oxford-tankbag.jpg',
+    'paddock-stand.jpg',
+    'pirelli-tires.jpg',
+    'racing-keychain.jpg',
+    'revit-pants.jpg',
+    'riding-backpack.jpg',
+    'shoei-helmet.jpg',
+    'tire-gauge.jpg',
+    'yokohama.png',
+    'yoshimura-exhaust.jpg',
+  ];
+
+  // FIXED: Generate consistent images based on product ID (deterministic)
+  const getProductImages = (productId) => {
+    // Use product ID to create consistent "random" selection
+    const numImages = 5; // Fixed number of images
+    const seed = productId || 1;
+    const shuffled = [...imageFiles].sort(() => {
+      return (seed * 12345 + 67890) % 1000 / 1000 - 0.5;
+    });
+    return shuffled.slice(0, numImages).map(filename => `/designs/images/${filename}`);
+  };
+
   useEffect(() => {
     setLoading(true);
     productAPI.getById(id)
@@ -32,7 +82,7 @@ function ProductDetails({ cart, setCart }) {
   const parsedStock = Number(product.stock);
   const hasStockNumber = Number.isFinite(parsedStock);
   const stock = hasStockNumber ? parsedStock : 0;
-  const hasImages = product.images && product.images.length > 0;
+  const productImages = getProductImages(parseInt(id)); // FIXED: Use product ID for consistency
 
   const handleImageError = () => {
     if (!imageError) setImageError(true);
@@ -41,14 +91,14 @@ function ProductDetails({ cart, setCart }) {
   const prevImage = () => {
     setImageError(false);
     setCurrentImageIndex(prevIndex =>
-      prevIndex === 0 ? product.images.length - 1 : prevIndex - 1
+      prevIndex === 0 ? productImages.length - 1 : prevIndex - 1
     );
   };
 
   const nextImage = () => {
     setImageError(false);
     setCurrentImageIndex(prevIndex =>
-      prevIndex === product.images.length - 1 ? 0 : prevIndex + 1
+      productImages.length > 1 ? (prevIndex === productImages.length - 1 ? 0 : prevIndex + 1) : 0
     );
   };
 
@@ -96,6 +146,7 @@ function ProductDetails({ cart, setCart }) {
         ? `${product.name} has been added to the cart`
         : `${quantity} ${product.name} have been added to the cart`;
       setMessage(msg);
+      setTimeout(() => setMessage(''), 3000);
     }
   };
 
@@ -108,16 +159,28 @@ function ProductDetails({ cart, setCart }) {
         <div className="row g-3 align-items-start">
           <div className="col-12 col-md-6">
             <div className="d-flex justify-content-center align-items-center" style={{ position: 'relative' }}>
-              {hasImages && product.images.length > 1 && (
-                <button onClick={prevImage} aria-label="Previous Image" className="btn btn-link text-primary p-0 me-2 d-none d-md-inline" style={{ fontSize: '1.75rem' }}>&lt;</button>
+              {productImages.length > 1 && (
+                <button
+                  onClick={prevImage}
+                  aria-label="Previous Image"
+                  className="btn btn-link text-primary p-0 me-2 d-none d-md-inline"
+                  style={{ fontSize: '1.75rem' }}
+                >&lt;</button>
               )}
 
-              <div className="product-image-box w-100" style={{ minHeight: '180px', backgroundColor: '#f8f9fa', display: 'flex', justifyContent: 'center', alignItems: 'center', borderRadius: '8px' }}>
-                {!hasImages || imageError ? (
+              <div className="product-image-box w-100" style={{
+                minHeight: '180px',
+                backgroundColor: '#f8f9fa',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                borderRadius: '8px'
+              }}>
+                {imageError ? (
                   <div style={{ fontStyle: 'italic', color: '#888' }}>No images available</div>
                 ) : (
                   <img
-                    src={product.images[currentImageIndex]}
+                    src={productImages[currentImageIndex]}
                     alt={`${product.name} ${currentImageIndex + 1}`}
                     onError={handleImageError}
                     className="img-fluid"
@@ -126,15 +189,20 @@ function ProductDetails({ cart, setCart }) {
                 )}
               </div>
 
-              {hasImages && product.images.length > 1 && (
-                <button onClick={nextImage} aria-label="Next Image" className="btn btn-link text-primary p-0 ms-2 d-none d-md-inline" style={{ fontSize: '1.75rem' }}>&gt;</button>
+              {productImages.length > 1 && (
+                <button
+                  onClick={nextImage}
+                  aria-label="Next Image"
+                  className="btn btn-link text-primary p-0 ms-2 d-none d-md-inline"
+                  style={{ fontSize: '1.75rem' }}
+                >&gt;</button>
               )}
             </div>
 
             {/* Dots for all breakpoints */}
-            {hasImages && product.images.length > 0 && (
+            {productImages.length > 1 && (
               <div className="text-center mt-3">
-                {product.images.map((_, idx) => (
+                {productImages.map((_, idx) => (
                   <button
                     key={idx}
                     onClick={() => selectImage(idx)}
@@ -185,7 +253,7 @@ function ProductDetails({ cart, setCart }) {
               <div className="d-flex gap-2 w-100">
                 <button
                   onClick={handleAddToCart}
-                  className={`btn ${quantity > 0 ? 'btn-success' : 'btn-secondary'} flex-grow-4`}
+                  className={`btn ${quantity > 0 ? 'btn-success' : 'btn-secondary'} flex-grow-1`}
                   disabled={quantity <= 0 || stock === 0}
                   style={{ height: '40px' }}
                 >
@@ -203,4 +271,3 @@ function ProductDetails({ cart, setCart }) {
 }
 
 export default ProductDetails;
-
