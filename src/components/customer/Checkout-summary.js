@@ -4,7 +4,8 @@ import products from '../../data/products.json';
 function CheckoutSummary({
   cart,
   finalTotal,
-  onPlaceOrder
+  onPlaceOrder,
+  isProcessing = false
 }) {
   const shippingFee = 50;
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -67,8 +68,15 @@ function CheckoutSummary({
             </div>
           </div>
 
-          <button className="btn btn-dark w-100 mt-3" onClick={onPlaceOrder}>
-            Place Order
+          <button className="btn btn-dark w-100 mt-3" onClick={onPlaceOrder} disabled={isProcessing}>
+            {isProcessing ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                Processing...
+              </>
+            ) : (
+              'Place Order'
+            )}
           </button>
         </div>
       </div>

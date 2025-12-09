@@ -31,7 +31,7 @@ function User() {
   const [formPostalCode, setFormPostalCode] = useState('');
 
   // Transactions
-  const [transactions, setTransactions] = useState([]);
+  
 
   // Fetch customer data and transactions
   useEffect(() => {
@@ -71,8 +71,7 @@ function User() {
         setPostalCode(currentCustomer.postalCode || 'default');
       }
 
-      // Fetch transactions for this customer
-      await fetchTransactions(customer.customersId || customer.id);
+      // no transaction history required
       
     } catch (err) {
       console.error('Error fetching data:', err);
@@ -82,37 +81,7 @@ function User() {
     }
   };
 
-const fetchTransactions = async (customerId) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/orders`);
-      if (!response.ok) throw new Error('Failed to fetch orders');
-      
-      const orders = await response.json();
-      const customerOrders = Array.isArray(orders) 
-        ? orders.filter(order => order.customersId === customerId)
-        : orders.data?.filter(order => order.customersId === customerId) || [];
-
-      // Format transactions for display
-      const formattedTransactions = customerOrders.map(order => ({
-        orderNumber: order.orderNumber,
-        totalPrice: parseFloat(order.totalPrice) || 0,
-        paymentMethod: order.paymentMethod || 'N/A',
-        deliveryAddress: order.deliveryAddress || 'N/A',
-        dateTime: new Date(order.purchaseDate).toLocaleString('en-PH', {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        })
-      }));
-
-      setTransactions(formattedTransactions);
-    } catch (err) {
-      console.error('Error fetching transactions:', err);
-      setTransactions([]);
-    }
-  };
+  
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -390,41 +359,7 @@ const fetchTransactions = async (customerId) => {
         )}
       </div>
 
-      <hr className="my-5" />
-
-      <h3>Transaction History</h3>
-      <div className="table-responsive">
-        <table className="table table-striped mb-0">
-          <thead className="table-light">
-            <tr>
-              <th scope="col">Order Number</th>
-              <th scope="col">Total Price (₱)</th>
-              <th scope="col">Payment Method</th>
-              <th scope="col">Delivery Address</th>
-              <th scope="col">Date & Time</th>
-            </tr>
-          </thead>
-          <tbody>
-            {transactions.length === 0 ? (
-              <tr>
-                <td colSpan="5" className="text-center py-4">
-                  No transactions yet.
-                </td>
-              </tr>
-            ) : (
-              transactions.map(tx => (
-                <tr key={tx.orderNumber}>
-                  <td>{tx.orderNumber}</td>
-                  <td>₱{tx.totalPrice.toFixed(2)}</td>
-                  <td>{tx.paymentMethod}</td>
-                  <td>{tx.deliveryAddress}</td>
-                  <td>{tx.dateTime}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      
     </div>
   );
 }
