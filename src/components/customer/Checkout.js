@@ -1,18 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import coupons from '../../data/coupons.json';
 import CheckoutContact from './Checkout-contact';
 import CheckoutSummary from './Checkout-summary';
 import CheckoutConfirmation from './Checkout-confirmation';
+import { orderAPI } from '../../services/api';
 
-function Checkout({ cart, setCart, onTransaction, usedCoupons, defaultContactInfo }) {
+function Checkout({ cart, setCart, onTransaction, defaultContactInfo }) {
   const [purchased, setPurchased] = useState(false);
   const [boughtList, setBoughtList] = useState([]);
-  const [couponCode, setCouponCode] = useState('');
-  const [appliedDiscount, setAppliedDiscount] = useState(0);
-  const [appliedCouponCode, setAppliedCouponCode] = useState('---');
-  const [couponMessage, setCouponMessage] = useState('');
-  const [couponApplied, setCouponApplied] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("COD");
+  const [processing, setProcessing] = useState(false);
 
   const [contactInfo, setContactInfo] = useState({
     firstName: '',
@@ -42,81 +38,60 @@ function Checkout({ cart, setCart, onTransaction, usedCoupons, defaultContactInf
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const boughtTotal = boughtList.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const finalTotal = Math.max(0, total - appliedDiscount + shippingFee);
-  const boughtFinalTotal = Math.max(0, boughtTotal - appliedDiscount + shippingFee);
+  const finalTotal = Math.max(0, total + shippingFee);
+  const boughtFinalTotal = Math.max(0, boughtTotal + shippingFee);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setContactInfo(prev => ({ ...prev, [name]: value }));
   };
 
-  const validateCoupon = (code) => {
-    const coupon = coupons.find(c => c.code === code);
-    if (!coupon) {
-      return { valid: false, message: 'Invalid coupon code', discount: 0 };
-    }
-    if (usedCoupons.includes(code)) {
-      return { valid: false, message: 'Coupon has already been used', discount: 0 };
-    }
-    const currentDate = new Date();
-    const startDate = new Date(coupon.startDate);
-    const endDate = new Date(coupon.endDate);
-    if (currentDate < startDate) {
-      return { valid: false, message: 'Coupon is not yet active', discount: 0 };
-    }
-    if (currentDate > endDate) {
-      return { valid: false, message: 'Coupon has expired', discount: 0 };
-    }
-    return {
-      valid: true,
-      message: `Coupon applied! ₱${coupon.discount} discount`,
-      discount: coupon.discount
-    };
-  };
-
-  const handleApplyCoupon = () => {
-    if (couponCode.trim() === '') {
-      setCouponMessage('');
-      setAppliedDiscount(0);
-      setAppliedCouponCode('---');
-      setCouponApplied(false);
-      return;
-    }
-    const result = validateCoupon(couponCode);
-    if (result.valid) {
-      setAppliedDiscount(result.discount);
-      setAppliedCouponCode(couponCode);
-      setCouponMessage(result.message);
-      setCouponApplied(true);
-    } else {
-      setAppliedDiscount(0);
-      setAppliedCouponCode('---');
-      setCouponMessage(result.message);
-      setCouponApplied(false);
-    }
-  };
-
-  const handleRemoveCoupon = () => {
-    setCouponCode('');
-    setAppliedDiscount(0);
-    setAppliedCouponCode('---');
-    setCouponMessage('');
-    setCouponApplied(false);
-  };
-
-  const handleBuyProduct = () => {
+  const handleBuyProduct = async () => {
     if (!contactInfo.firstName || !contactInfo.lastName || !contactInfo.houseStreet) {
       setContactError('Please fill in required contact information');
       return;
     }
     setContactError('');
 
-    setBoughtList(cart);
-    setPurchased(true);
-    setCart([]);
+    setProcessing(true);
+    const customerId = localStorage.getItem('customerId');
+    try {
+      if (customerId && cart.length > 0) {
+        await orderAPI.create({
+          customersId: customerId,
+          items: cart,
+          total: finalTotal,
+          paymentMethod: paymentMethod,
+          deliveryAddress: `${contactInfo.houseStreet}, ${contactInfo.barangay}, ${contactInfo.city}, ${contactInfo.postalCode}`,
+          status: 'pending'
+        });
+      } else {
+        // Optionally create order for guest users as well
+        await orderAPI.create({
+          customersId: null,
+          items: cart,
+          total: finalTotal,
+          paymentMethod: paymentMethod,
+          deliveryAddress: `${contactInfo.houseStreet}, ${contactInfo.barangay}, ${contactInfo.city}, ${contactInfo.postalCode}`,
+          status: 'pending'
+        });
+      }
 
-    if (onTransaction) {
-      onTransaction(cart, appliedDiscount, appliedCouponCode, contactInfo, paymentMethod);
+      // Clear local cart storage (we ignore DB cart)
+      try { localStorage.removeItem('cart'); } catch (e) {}
+
+      setBoughtList(cart);
+      setPurchased(true);
+      setCart([]);
+
+      if (onTransaction) {
+        onTransaction(cart, 0, '---', contactInfo, paymentMethod);
+      }
+    } catch (err) {
+      console.error('Error processing order:', err);
+      setContactError('Failed to process order. Please try again.');
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -125,9 +100,9 @@ function Checkout({ cart, setCart, onTransaction, usedCoupons, defaultContactInf
       <CheckoutConfirmation
         boughtList={boughtList}
         boughtTotal={boughtTotal}
-        appliedDiscount={appliedDiscount}
+        appliedDiscount={0}
         shippingFee={shippingFee}
-        appliedCouponCode={appliedCouponCode}
+        appliedCouponCode="---"
         boughtFinalTotal={boughtFinalTotal}
         paymentMethod={paymentMethod}
       />
@@ -156,16 +131,10 @@ function Checkout({ cart, setCart, onTransaction, usedCoupons, defaultContactInf
         />
         <CheckoutSummary
           cart={cart}
-          couponCode={couponCode}
-          setCouponCode={setCouponCode}
-          couponApplied={couponApplied}
-          handleApplyCoupon={handleApplyCoupon}
-          handleRemoveCoupon={handleRemoveCoupon}
-          couponMessage={couponMessage}
-          appliedDiscount={appliedDiscount}
           shippingFee={shippingFee}
           finalTotal={finalTotal}
           onPlaceOrder={handleBuyProduct}
+          isProcessing={processing}
         />
       </div>
     </div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
+// cart is stored locally in localStorage; no API calls here
 
 function Cart({ cart, setCart }) {
   const navigate = useNavigate();
@@ -13,32 +14,38 @@ function Cart({ cart, setCart }) {
   const handleQuantityChange = (productId, newQuantity) => {
     // Ensure quantity is at least 1
     if (newQuantity < 1) return;
-
-    setCart(cart.map(item =>
-      item.id === productId
-        ? { ...item, quantity: newQuantity }
-        : item
-    ));
+    setCart(prev => {
+      const next = prev.map(item => item.id === productId ? { ...item, quantity: newQuantity } : item);
+      try { localStorage.setItem('cart', JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
   };
 
   const handleIncrement = (productId) => {
-    setCart(cart.map(item =>
-      item.id === productId
-        ? { ...item, quantity: item.quantity + 1 }
-        : item
-    ));
+    setCart(prev => {
+      const next = prev.map(i => i.id === productId ? { ...i, quantity: (i.quantity || 0) + 1 } : i);
+      try { localStorage.setItem('cart', JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
   };
 
   const handleDecrement = (productId) => {
-    setCart(cart.map(item =>
-      item.id === productId && item.quantity > 1
-        ? { ...item, quantity: item.quantity - 1 }
-        : item
-    ));
+    setCart(prev => {
+      const item = prev.find(i => i.id === productId);
+      if (!item) return prev;
+      const newQty = Math.max(1, item.quantity - 1);
+      const next = prev.map(i => i.id === productId ? { ...i, quantity: newQty } : i);
+      try { localStorage.setItem('cart', JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
   };
 
   const handleRemoveItem = (productId) => {
-    setCart(cart.filter(item => item.id !== productId));
+    setCart(prev => {
+      const next = prev.filter(item => item.id !== productId);
+      try { localStorage.setItem('cart', JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
   };
 
   return (
@@ -82,7 +89,7 @@ function Cart({ cart, setCart }) {
                           <input
                             type="number"
                             className="form-control form-control-sm text-center"
-                            style={{ width: '60px' }}
+                            style={{ width: '5.5rem', maxWidth: '100%' }}
                             value={item.quantity}
                             onChange={(e) => handleQuantityChange(item.id, parseInt(e.target.value) || 1)}
                             min="1"
@@ -119,10 +126,7 @@ function Cart({ cart, setCart }) {
           <div className="d-flex justify-content-end mt-3">
             <div className="text-end">
               <h4>Total: <strong>₱{total.toFixed(2)}</strong></h4>
-              <button
-                onClick={handleCheckout}
-                className="btn btn-dark btn-lg mt-2"
-              >
+              <button onClick={handleCheckout} className="btn btn-dark btn-lg mt-2">
                 Proceed to Checkout
               </button>
             </div>
