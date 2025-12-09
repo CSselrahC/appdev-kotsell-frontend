@@ -165,14 +165,27 @@ function CustomerAuthPage() {
     }
   };
 
+  const handleBack = () => {
+    navigate('/');
+  };
+
   return (
     <div
-      className="d-flex justify-content-center align-items-center w-100 bg-light"
-      style={{ minHeight: '100vh' }}
+      className="d-flex justify-content-center align-items-center w-100 bg-light position-relative"
+      style={{ minHeight: '100vh', height: '100vh' }}
     >
-      <div className="container px-3 px-sm-4">
-        <div className="row justify-content-center">
-          <div className="col-12 col-sm-10 col-md-8 col-lg-6 col-xl-5">
+      {/* Back button - positioned absolutely at top left */}
+      <button
+        className="btn btn-outline-secondary position-absolute top-0 start-0 m-3 m-md-4 p-2 shadow-sm"
+        onClick={handleBack}
+        style={{ width: '48px', height: '48px', zIndex: 10 }}
+      >
+        ←
+      </button>
+
+      <div className="w-100 px-3 px-sm-4">
+        <div className="d-flex justify-content-center">
+          <div style={{ width: '100%', maxWidth: 440 }}>
             <div className="card border-0 shadow-sm">
               <div className="card-body p-4 p-sm-5">
                 {/* Header */}
