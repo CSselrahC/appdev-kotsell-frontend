@@ -12,6 +12,54 @@ function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Static image files from public/designs/images/ (same as other components)
+  const imageFiles = [
+    'HKS-1.jpg',
+    'HKS-2.jpg',
+    'HKS-3.jpg',
+    'HWSkyline-1.webp',
+    'HWSkyline-2.webp',
+    'agv-k6.jpg',
+    'alpinestars-gloves.jpg',
+    'arai-rx7v-helmet.jpg',
+    'brembo-brake.jpg',
+    'brembo-ceramic.jpg',
+    'bride-zeta.jpg',
+    'bridgestone-tires.jpg',
+    'chain-brush.jpg',
+    'dainese-jacket.jpg',
+    'diecast-car.jpg',
+    'gopro-mount.jpg',
+    'led-headlight.jpg',
+    'minigt-porsche-1.jpg',
+    'minigt-porsche-2.jpg',
+    'minigt-porsche-3.jpg',
+    'minigt-porsche-4.jpg',
+    'motul-oil.jpg',
+    'nismo.webp',
+    'ohlins-shock.jpg',
+    'oxford-tankbag.jpg',
+    'paddock-stand.jpg',
+    'pirelli-tires.jpg',
+    'racing-keychain.jpg',
+    'revit-pants.jpg',
+    'riding-backpack.jpg',
+    'shoei-helmet.jpg',
+    'tire-gauge.jpg',
+    'yokohama.png',
+    'yoshimura-exhaust.jpg',
+  ];
+
+  // Get consistent images for carousel based on product ID
+  const getProductImages = (productId) => {
+    const numImages = 5;
+    const seed = productId || 1;
+    const shuffled = [...imageFiles].sort(() => {
+      return (seed * 12345 + 67890) % 1000 / 1000 - 0.5;
+    });
+    return shuffled.slice(0, numImages).map(filename => `/designs/images/${filename}`);
+  };
+
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
@@ -104,20 +152,22 @@ function AdminDashboard() {
     setImageError(true);
   };
 
+  const productImages = bestSellingProduct ? getProductImages(bestSellingProduct.id) : [];
+
   const prevImage = () => {
     setImageError(false);
-    if (bestSellingProduct?.images && bestSellingProduct.images.length > 0) {
+    if (productImages.length > 1) {
       setCurrentImageIndex(prevIndex =>
-        prevIndex === 0 ? bestSellingProduct.images.length - 1 : prevIndex - 1
+        prevIndex === 0 ? productImages.length - 1 : prevIndex - 1
       );
     }
   };
 
   const nextImage = () => {
     setImageError(false);
-    if (bestSellingProduct?.images && bestSellingProduct.images.length > 0) {
+    if (productImages.length > 1) {
       setCurrentImageIndex(prevIndex =>
-        prevIndex === bestSellingProduct.images.length - 1 ? 0 : prevIndex + 1
+        prevIndex === productImages.length - 1 ? 0 : prevIndex + 1
       );
     }
   };
@@ -234,7 +284,7 @@ function AdminDashboard() {
         </div>
       </div>
 
-      {/* Best Selling Product - WRAPPED IN FRAGMENT */}
+      {/* Best Selling Product */}
       {bestSellingProduct ? (
         <>
           <div className="row g-4 mb-4">
@@ -249,7 +299,7 @@ function AdminDashboard() {
                     {/* Image Section */}
                     <div className="col-12 col-lg-5">
                       <div className="position-relative">
-                        {bestSellingProduct?.images && bestSellingProduct.images.length > 1 && (
+                        {productImages.length > 1 && (
                           <>
                             <button 
                               type="button"
@@ -279,14 +329,14 @@ function AdminDashboard() {
                             border: '2px solid #e9ecef'
                           }}
                         >
-                          {!bestSellingProduct?.images || bestSellingProduct.images.length === 0 || imageError ? (
+                          {imageError ? (
                             <div className="text-center text-muted p-4">
                               <i className="ri-image-line fs-1 mb-2 opacity-50"></i>
                               <p className="mb-0 fst-italic">No images available</p>
                             </div>
                           ) : (
                             <img
-                              src={bestSellingProduct.images[currentImageIndex]}
+                              src={productImages[currentImageIndex]}
                               alt={`${bestSellingProduct.name} ${currentImageIndex + 1}`}
                               onError={handleImageError}
                               className="img-fluid rounded-2"
@@ -296,9 +346,9 @@ function AdminDashboard() {
                         </div>
 
                         {/* Image Dots */}
-                        {bestSellingProduct?.images && bestSellingProduct.images.length > 1 && (
+                        {productImages.length > 1 && (
                           <div className="text-center mt-3">
-                            {bestSellingProduct.images.map((_, idx) => (
+                            {productImages.map((_, idx) => (
                               <button
                                 key={idx}
                                 type="button"
