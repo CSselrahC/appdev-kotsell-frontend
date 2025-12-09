@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { imageAPI, productImageAPI, productAPI } from '../../services/api';
 
 const API_BASE_URL = 'http://localhost:8082/api';
 
@@ -22,6 +23,7 @@ function AdminEditProductDetails() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [product, setProduct] = useState(null);
   const [categories, setCategories] = useState([]);
+  const [selectedFiles, setSelectedFiles] = useState([]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -42,14 +44,10 @@ function AdminEditProductDetails() {
         console.log('✅ Categories loaded:', categoriesList.length);
         setCategories(categoriesList);
 
-        // 2. Fetch specific PRODUCT by ID
-        console.log('📥 Fetching product:', `${API_BASE_URL}/products/${id}`);
-        const productResponse = await fetch(`${API_BASE_URL}/products/${id}`);
-        if (!productResponse.ok) {
-          throw new Error(`Product fetch failed: ${productResponse.status}`);
-        }
-        const productData = await productResponse.json();
-        console.log('✅ Product loaded:', productData);
+        // 2. Fetch specific PRODUCT by ID (use productAPI to normalize images)
+        console.log('📥 Fetching product via productAPI.getById:', id);
+        const productData = await productAPI.getById(id);
+        console.log('✅ Product loaded (normalized):', productData);
         setProduct(productData);
 
         // 3. Fetch THIS PRODUCT'S categories from junction table
@@ -216,6 +214,27 @@ function AdminEditProductDetails() {
         }
       }
       console.log('✅ Categories updated');
+
+      // If files selected, upload and link them
+      if (selectedFiles && selectedFiles.length > 0) {
+        for (const file of selectedFiles) {
+          try {
+            const uploaded = await imageAPI.upload(file, file.name);
+            const imageId = uploaded.imageId || uploaded.id || uploaded.image_id;
+            const prodId = id;
+            if (imageId) {
+              await productImageAPI.link(prodId, imageId);
+            }
+          } catch (uploadErr) {
+            console.error('Failed to upload/link image:', uploadErr);
+          }
+        }
+        // reload product images using normalized fetch
+        try {
+          const refreshed = await productAPI.getById(id);
+          setProduct(refreshed);
+        } catch (rerr) { console.warn(rerr); }
+      }
 
       setSuccess('Product and categories updated successfully!');
       // Go back to products list
@@ -484,6 +503,25 @@ function AdminEditProductDetails() {
                 </div>
 
                 <hr className="my-4" />
+
+                  <div className="mb-3">
+                    <label className="form-label">Upload Images</label>
+                    <input
+                      type="file"
+                      className="form-control"
+                      accept="image/*"
+                      multiple
+                      onChange={(e) => setSelectedFiles(Array.from(e.target.files))}
+                      disabled={updating}
+                    />
+                    {selectedFiles.length > 0 && (
+                      <div className="mt-2 d-flex gap-2 flex-wrap">
+                        {selectedFiles.map((f, idx) => (
+                          <div key={idx} className="small text-muted border rounded p-2">{f.name}</div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
 
                 <div className="d-flex gap-3 justify-content-between flex-wrap">
                   <button

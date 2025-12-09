@@ -82,7 +82,7 @@ function User() {
     }
   };
 
-  const fetchTransactions = async (customerId) => {
+const fetchTransactions = async (customerId) => {
     try {
       const response = await fetch(`${API_BASE_URL}/orders`);
       if (!response.ok) throw new Error('Failed to fetch orders');

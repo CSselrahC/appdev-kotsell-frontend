@@ -55,19 +55,19 @@ function Checkout({ cart, setCart, onTransaction, defaultContactInfo }) {
     const customerId = localStorage.getItem('customerId');
     if (customerId && cart.length > 0) {
       try {
-        // Create order via API
+        // Create order via API (use customersId & total to match backend)
         await orderAPI.create({
-          customer_id: customerId,
+          customersId: customerId,
           items: cart,
-          total_price: finalTotal,
-          payment_method: paymentMethod,
-          delivery_address: `${contactInfo.houseStreet}, ${contactInfo.barangay}, ${contactInfo.city}, ${contactInfo.postalCode}`,
+          total: finalTotal,
+          paymentMethod: paymentMethod,
+          deliveryAddress: `${contactInfo.houseStreet}, ${contactInfo.barangay}, ${contactInfo.city}, ${contactInfo.postalCode}`,
           status: 'pending'
         });
 
         // Clear cart from database
         await cartAPI.clearCart(customerId);
-        
+
         setBoughtList(cart);
         setPurchased(true);
         setCart([]);
