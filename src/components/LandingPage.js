@@ -64,7 +64,7 @@ function LandingPage() {
                     onClick={handleCustomerClick}
                     style={{
                       borderRadius: '999px',
-                      background: 'linear-gradient(90deg, #2563eb, #1d4ed8)',
+                      background: 'linear-gradient(90deg, #212529, #212529)',
                       border: 'none',
                     }}
                   >
@@ -78,7 +78,7 @@ function LandingPage() {
                     style={{
                       borderRadius: '999px',
                       border: '2px solid #d1d5db',
-                      color: '#111827',
+                      color: '#212529',
                     }}
                   >
                     <span>Admin</span>

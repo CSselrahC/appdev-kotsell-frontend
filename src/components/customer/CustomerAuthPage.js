@@ -205,7 +205,7 @@ function CustomerAuthPage() {
                     type="button"
                     className={`flex-fill btn btn-sm rounded-pill ${
                       mode === 'login'
-                        ? 'btn-primary text-white'
+                        ? 'btn-dark text-white'
                         : 'btn-link text-muted text-decoration-none'
                     }`}
                     onClick={() => switchMode('login')}
@@ -216,7 +216,7 @@ function CustomerAuthPage() {
                     type="button"
                     className={`flex-fill btn btn-sm rounded-pill ${
                       mode === 'register'
-                        ? 'btn-primary text-white'
+                        ? 'btn-dark text-white'
                         : 'btn-link text-muted text-decoration-none'
                     }`}
                     onClick={() => switchMode('register')}
@@ -322,7 +322,7 @@ function CustomerAuthPage() {
 
                   <button
                     type="submit"
-                    className="btn btn-primary w-100 mt-2 fw-semibold"
+                    className="btn btn-dark w-100 mt-2 fw-semibold"
                     disabled={isLoading}
                   >
                     {isLoading ? (
