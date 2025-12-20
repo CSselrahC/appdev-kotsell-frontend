@@ -1,6 +1,7 @@
 # React Group Project: "E-commerce"
 
-Thr goal is to develop the **UI/UX** of an **e-commerce web application** using **React.js**, following the sprint plan created during the **Prelim phase**.
+The goal is to develop the **UI/UX** of an **e-commerce web application** using **React.js**, following the sprint plan created during the **Prelim phase**.
+The link for the back-end source code: https://github.com/CSselrahC/kotsell-backend
 
 ## Group Members
 | Member | GitHub Account | Link |
